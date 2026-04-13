@@ -5,7 +5,13 @@
 """
 
 import flet as ft
-from main_ui import ApiTestPage
+import sys
+import os
+
+# 添加src目录到路径
+sys.path.insert(0, os.path.dirname(__file__))
+
+from ui.main_ui import ApiTestPage
 
 
 def main(page: ft.Page):

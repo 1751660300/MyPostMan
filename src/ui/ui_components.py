@@ -91,24 +91,24 @@ class KeyValueRow(ft.Container):
 class DynamicKeyValueList(ft.Container):
     """动态键值对列表组件（类似 Postman 表格样式）"""
 
-    def __init__(self):
+    def __init__(self, default_data: dict[str, str] = None):
         super().__init__()
         self.expand = True
-        
+
         # 数据区域
         self.data_area = ft.Column(
             spacing=0,
             scroll=ft.ScrollMode.AUTO,
             expand=True,
         )
-        
+
         # 添加行按钮
         self.add_row_btn = ft.TextButton(
-            "+ 添加参数",
+            "添加参数",
             icon=ft.Icons.ADD,
             on_click=lambda e: self._add_row(),
         )
-        
+
         self.content = ft.Column(
             controls=[
                 # 表头
@@ -136,9 +136,17 @@ class DynamicKeyValueList(ft.Container):
             ],
             spacing=0,
         )
+
+        # 如果有默认数据，先添加默认数据
+        if default_data:
+            for key, value in default_data.items():
+                row = KeyValueRow(on_delete=self._remove_row)
+                row.key_input.value = key
+                row.value_input.value = value
+                self.data_area.controls.append(row)
         
-        # 初始添加3行（不调用 update）
-        for _ in range(3):
+        # 补充空行（确保至少有3行）
+        while len(self.data_area.controls) < 3:
             row = KeyValueRow(on_delete=self._remove_row)
             self.data_area.controls.append(row)
 
@@ -146,8 +154,11 @@ class DynamicKeyValueList(ft.Container):
         """添加一行键值输入"""
         row = KeyValueRow(on_delete=self._remove_row)
         self.data_area.controls.append(row)
-        if self.data_area.page:
-            self.data_area.update()
+        try:
+            if hasattr(self.data_area, 'page') and self.data_area.page:
+                self.data_area.update()
+        except RuntimeError:
+            pass
 
     def _remove_row(self, row: KeyValueRow):
         """删除指定行"""
@@ -156,8 +167,11 @@ class DynamicKeyValueList(ft.Container):
             # 确保至少有3行
             while len(self.data_area.controls) < 3:
                 self._add_row()
-            if self.data_area.page:
-                self.data_area.update()
+            try:
+                if hasattr(self.data_area, 'page') and self.data_area.page:
+                    self.data_area.update()
+            except RuntimeError:
+                pass
 
     def get_data(self) -> dict[str, str]:
         """获取所有非空且启用的键值对"""
@@ -179,8 +193,13 @@ class DynamicKeyValueList(ft.Container):
         while len(self.data_area.controls) < 3:
             row = KeyValueRow(on_delete=self._remove_row)
             self.data_area.controls.append(row)
-        if self.data_area.page:
-            self.data_area.update()
+        # 只有在组件已添加到页面时才update
+        try:
+            if hasattr(self.data_area, 'page') and self.data_area.page:
+                self.data_area.update()
+        except RuntimeError:
+            # 组件还未添加到页面，不需要update
+            pass
 
 
 class BodyEditor(ft.Container):
@@ -189,80 +208,221 @@ class BodyEditor(ft.Container):
     def __init__(self):
         super().__init__()
         self.expand = True
-        
+
         # Body 类型选择
         self.body_type_dropdown = ft.Dropdown(
             options=[
-                ft.dropdown.Option("none", "none"),
-                ft.dropdown.Option("json", "raw (JSON)"),
-                ft.dropdown.Option("text", "raw (Text)"),
-                ft.dropdown.Option("x-www-form-urlencoded", "x-www-form-urlencoded"),
+                ft.dropdown.Option("none", "无"),
+                ft.dropdown.Option("json", "JSON"),
+                ft.dropdown.Option("text", "文本"),
+                ft.dropdown.Option("x-www-form-urlencoded", "表单"),
             ],
             value="none",
-            width=220,
+            width=180,
             label="Body 类型",
             on_text_change=self._on_body_type_change,
             text_size=13,
             label_style=ft.TextStyle(size=12, weight=ft.FontWeight.BOLD),
         )
-        
-        # Body 输入
+
+        # Body 输入 - 使用更美观的样式
         self.body_input = ft.TextField(
             multiline=True,
-            min_lines=8,
-            max_lines=20,
-            hint_text='{\n  "key": "value"\n}',
+            min_lines=10,
+            max_lines=25,
+            hint_text='选择 Body 类型后输入内容',
             expand=True,
             text_size=13,
-            text_style=ft.TextStyle(font_family="Consolas"),
+            text_style=ft.TextStyle(font_family="Consolas", size=13),
+            border_radius=8,
+            filled=True,
+            bgcolor=ft.Colors.GREY_50,
         )
-        
-        # 格式化按钮
+
+        # 工具栏按钮
         self.format_btn = ft.IconButton(
-            icon=ft.Icons.FORMAT_ALIGN_LEFT,
-            tooltip="格式化 JSON",
+            icon=ft.Icons.FORMAT_PAINT,
+            icon_size=20,
+            tooltip="格式化/美化 JSON",
             on_click=self._format_json,
+            style=ft.ButtonStyle(
+                bgcolor=ft.Colors.BLUE_50,
+                color=ft.Colors.BLUE,
+            ),
         )
-        
+
+        self.copy_btn = ft.IconButton(
+            icon=ft.Icons.CONTENT_COPY,
+            icon_size=20,
+            tooltip="复制内容",
+            on_click=self._copy_content,
+            style=ft.ButtonStyle(
+                bgcolor=ft.Colors.GREEN_50,
+                color=ft.Colors.GREEN,
+            ),
+        )
+
+        self.clear_btn = ft.IconButton(
+            icon=ft.Icons.CLEAR_ALL,
+            icon_size=20,
+            tooltip="清空内容",
+            on_click=self._clear_content,
+            style=ft.ButtonStyle(
+                bgcolor=ft.Colors.GREY_200,
+                color=ft.Colors.GREY_700,
+            ),
+        )
+
+        # 状态提示
+        self.status_text = ft.Text(
+            "",
+            size=11,
+            color=ft.Colors.GREY_600,
+            visible=False,
+        )
+
         self.content = ft.Column(
             controls=[
-                ft.Row(
-                    controls=[
-                        self.body_type_dropdown,
-                        self.format_btn,
-                    ],
-                    spacing=10,
+                # 工具栏
+                ft.Container(
+                    content=ft.Row(
+                        controls=[
+                            self.body_type_dropdown,
+                            ft.Container(width=10),
+                            self.format_btn,
+                            self.copy_btn,
+                            self.clear_btn,
+                            ft.Container(expand=True),
+                            self.status_text,
+                        ],
+                        spacing=8,
+                        alignment=ft.MainAxisAlignment.START,
+                    ),
+                    padding=ft.padding.symmetric(vertical=8, horizontal=4),
                 ),
-                ft.Container(height=10),
-                self.body_input,
+                # Body 输入区域
+                ft.Container(
+                    content=self.body_input,
+                    expand=True,
+                    border=ft.border.all(1, ft.Colors.GREY_300),
+                    border_radius=8,
+                    padding=4,
+                ),
             ],
             expand=True,
+            spacing=8,
         )
 
     def _on_body_type_change(self, e):
-        """Body 类型切换时更新提示文本"""
+        """Body 类型切换时更新提示文本和自动美化"""
         body_type = self.body_type_dropdown.value
         if body_type == "json":
-            self.body_input.hint_text = '{\n  "key": "value"\n}'
+            self.body_input.hint_text = '{\n  "key": "value",\n  "example": "data"\n}'
+            # 如果已有内容,自动美化
+            if self.body_input.value and self.body_input.value.strip():
+                self._auto_format_if_json()
         elif body_type == "text":
-            self.body_input.hint_text = "纯文本内容"
+            self.body_input.hint_text = "输入纯文本内容"
         elif body_type == "x-www-form-urlencoded":
-            self.body_input.hint_text = 'key1=value1&key2=value2 或 JSON 格式'
+            self.body_input.hint_text = 'key1=value1&key2=value2'
         else:
-            self.body_input.hint_text = ""
-        self.body_input.update()
+            self.body_input.hint_text = "选择 Body 类型后输入内容"
+
+        self._show_status(f"已切换到 {body_type} 模式")
+        try:
+            if hasattr(self.body_input, 'page') and self.body_input.page:
+                self.body_input.update()
+        except RuntimeError:
+            pass
+
+    def _auto_format_if_json(self):
+        """如果是JSON则自动美化"""
+        import json
+        try:
+            body = self.body_input.value.strip()
+            if body:
+                parsed = json.loads(body)
+                self.body_input.value = json.dumps(parsed, indent=2, ensure_ascii=False)
+                self._show_status("✓ JSON 已自动美化")
+                try:
+                    if hasattr(self.body_input, 'page') and self.body_input.page:
+                        self.body_input.update()
+                except RuntimeError:
+                    pass
+                return True
+        except (json.JSONDecodeError, ValueError):
+            pass
+        return False
 
     def _format_json(self, e):
         """格式化 JSON"""
         import json
         try:
-            body = self.body_input.value
+            body = self.body_input.value.strip()
             if body:
                 parsed = json.loads(body)
                 self.body_input.value = json.dumps(parsed, indent=2, ensure_ascii=False)
-                self.body_input.update()
+                self._show_status("✓ JSON 格式化成功")
+                try:
+                    if hasattr(self.body_input, 'page') and self.body_input.page:
+                        self.body_input.update()
+                except RuntimeError:
+                    pass
+            else:
+                self._show_status("⚠ 内容为空", ft.Colors.ORANGE)
         except json.JSONDecodeError as ex:
-            pass  # 忽略格式错误
+            self._show_status(f"✗ JSON 格式错误: {str(ex)[:50]}", ft.Colors.RED)
+        except Exception as ex:
+            self._show_status(f"✗ 格式化失败: {str(ex)}", ft.Colors.RED)
+
+    def _copy_content(self, e):
+        """复制内容到剪贴板"""
+        if self.body_input.value:
+            try:
+                if hasattr(self, 'page') and self.page:
+                    self.page.clipboard.set(self.body_input.value)
+            except RuntimeError:
+                pass
+            self._show_status("✓ 已复制到剪贴板", ft.Colors.GREEN)
+        else:
+            self._show_status("⚠ 内容为空", ft.Colors.ORANGE)
+
+    def _clear_content(self, e):
+        """清空内容"""
+        self.body_input.value = ""
+        self._show_status("✓ 已清空内容", ft.Colors.GREEN)
+        try:
+            if hasattr(self.body_input, 'page') and self.body_input.page:
+                self.body_input.update()
+        except RuntimeError:
+            pass
+
+    def _show_status(self, message: str, color: str = ft.Colors.GREEN):
+        """显示状态提示"""
+        self.status_text.value = message
+        self.status_text.color = color
+        self.status_text.visible = True
+        try:
+            if hasattr(self.status_text, 'page') and self.status_text.page:
+                self.status_text.update()
+        except RuntimeError:
+            # 组件还未添加到页面，不需要update
+            pass
+        # 3秒后自动隐藏
+        import threading
+        def hide_status():
+            import time
+            time.sleep(3)
+            self.status_text.visible = False
+            try:
+                if hasattr(self.status_text, 'page') and self.status_text.page:
+                    self.status_text.page.run_thread(lambda: self.status_text.update())
+            except RuntimeError:
+                pass
+
+        thread = threading.Thread(target=hide_status)
+        thread.daemon = True
+        thread.start()
 
     def get_body(self) -> str:
         return self.body_input.value
@@ -272,11 +432,23 @@ class BodyEditor(ft.Container):
 
     def set_body(self, body: str):
         self.body_input.value = body
-        self.body_input.update()
+        # 如果是JSON类型,自动美化
+        if self.body_type_dropdown.value == "json":
+            self._auto_format_if_json()
+        try:
+            if hasattr(self.body_input, 'page') and self.body_input.page:
+                self.body_input.update()
+        except RuntimeError:
+            pass
 
     def set_body_type(self, body_type: str):
         self.body_type_dropdown.value = body_type
-        self.body_type_dropdown.update()
+        self._on_body_type_change(None)
+        try:
+            if hasattr(self.body_type_dropdown, 'page') and self.body_type_dropdown.page:
+                self.body_type_dropdown.update()
+        except RuntimeError:
+            pass
 
 
 class RequestRunner(ft.Container):
@@ -493,18 +665,24 @@ class RequestRunner(ft.Container):
         self.progress_bar.value = value
         self.progress_text.value = text
         self.progress_bar.visible = value > 0
-        if self.progress_bar.page:
-            self.progress_bar.update()
-            self.progress_text.update()
+        try:
+            if hasattr(self.progress_bar, 'page') and self.progress_bar.page:
+                self.progress_bar.update()
+                self.progress_text.update()
+        except RuntimeError:
+            pass
 
     def reset_progress(self):
         """重置进度"""
         self.progress_bar.value = 0
         self.progress_bar.visible = False
         self.progress_text.value = ""
-        if self.progress_bar.page:
-            self.progress_bar.update()
-            self.progress_text.update()
+        try:
+            if hasattr(self.progress_bar, 'page') and self.progress_bar.page:
+                self.progress_bar.update()
+                self.progress_text.update()
+        except RuntimeError:
+            pass
 
 
 class ResponsePanel(ft.Container):
@@ -516,13 +694,26 @@ class ResponsePanel(ft.Container):
         self.padding = 15
 
         # 状态信息
-        self.status_text = ft.Text("等待发送请求", size=15, weight=ft.FontWeight.BOLD)
+        self.status_text = ft.Text("", size=15, weight=ft.FontWeight.BOLD)
         self.time_text = ft.Text("", size=13, color=ft.Colors.GREY_700)
+
+        # 响应类型信息
+        self.response_type_text = ft.Text("", size=12, color=ft.Colors.BLUE)
 
         # Tab 切换内容
         self.body_text = ft.Text("", size=13, font_family="Consolas")
         self.headers_text = ft.Text("", size=13, font_family="Consolas")
         self.cookies_text = ft.Text("", size=13, font_family="Consolas")
+
+        # HTML 预览（使用 WebView 或文本展示）
+        self.html_preview = ft.TextField(
+            multiline=True,
+            read_only=True,
+            text_size=12,
+            text_style=ft.TextStyle(font_family="Consolas", size=12),
+            expand=True,
+            visible=False,
+        )
 
         # 使用 TabBar + TabBarView
         self.tabs = ft.Tabs(
@@ -543,7 +734,7 @@ class ResponsePanel(ft.Container):
                     ft.TabBarView(
                         expand=True,
                         controls=[
-                            self._create_scrollable(self.body_text),
+                            self._create_body_tab(),
                             self._create_scrollable(self.headers_text),
                             self._create_scrollable(self.cookies_text),
                         ],
@@ -558,6 +749,7 @@ class ResponsePanel(ft.Container):
                     content=ft.Row(
                         controls=[
                             self.status_text,
+                            self.response_type_text,
                             self.time_text,
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -572,6 +764,21 @@ class ResponsePanel(ft.Container):
             expand=True,
         )
 
+    def _create_body_tab(self) -> ft.Container:
+        """创建 Body tab 的内容（支持普通文本和HTML预览）"""
+        return ft.Container(
+            content=ft.Column(
+                controls=[
+                    # Body 文本
+                    self._create_scrollable(self.body_text),
+                    # HTML 预览
+                    self.html_preview,
+                ],
+                expand=True,
+            ),
+            expand=True,
+        )
+
     def _create_scrollable(self, text_control: ft.Text) -> ft.ListView:
         """创建可滚动的文本容器"""
         return ft.ListView(
@@ -579,6 +786,49 @@ class ResponsePanel(ft.Container):
             expand=True,
             spacing=5,
         )
+
+    def _detect_response_type(self, headers: dict) -> str:
+        """检测响应类型"""
+        content_type = headers.get("Content-Type", headers.get("content-type", "")).lower()
+        if "html" in content_type:
+            return "html"
+        elif "json" in content_type:
+            return "json"
+        elif "xml" in content_type:
+            return "xml"
+        elif "text" in content_type:
+            return "text"
+        else:
+            return "unknown"
+
+    def _format_html(self, html_content: str) -> str:
+        """简单格式化 HTML（添加换行和缩进）"""
+        import re
+        
+        # 移除多余的空白
+        formatted = re.sub(r'>\s+<', '><', html_content.strip())
+        
+        # 简单的缩进处理
+        indent = 0
+        lines = []
+        
+        # 分割标签
+        tags = re.findall(r'<[^>]+>|[^<]+', formatted)
+        
+        for tag in tags:
+            if tag.startswith('</'):
+                indent = max(0, indent - 1)
+                lines.append('  ' * indent + tag)
+            elif tag.startswith('<') and not tag.startswith('<?') and not tag.startswith('<!--'):
+                lines.append('  ' * indent + tag)
+                if not tag.endswith('/>') and not tag.startswith('<!'):
+                    indent += 1
+            else:
+                text = tag.strip()
+                if text:
+                    lines.append('  ' * indent + text)
+        
+        return '\n'.join(lines)
 
     def update_response(self, response):
         """
@@ -593,9 +843,12 @@ class ResponsePanel(ft.Container):
             self.status_text.value = f"❌ {response.error}"
             self.status_text.color = ft.Colors.RED
             self.time_text.value = f"耗时: {response.elapsed}ms"
+            self.response_type_text.value = ""
             self.body_text.value = response.error
             self.headers_text.value = ""
             self.cookies_text.value = ""
+            self.html_preview.visible = False
+            self.body_text.visible = True
         else:
             # 状态码颜色
             if response.is_success:
@@ -611,13 +864,40 @@ class ResponsePanel(ft.Container):
             self.status_text.value = f"{status_icon} {response.status_code} {response.reason}"
             self.time_text.value = f"耗时: {response.elapsed}ms"
 
+            # 检测响应类型
+            response_type = self._detect_response_type(response.headers)
+            
             # 格式化响应体
-            self.body_text.value = response.formatted_body
+            if response_type == "html":
+                # HTML 类型：提供格式化的源码
+                formatted_html = self._format_html(response.body)
+                self.body_text.value = formatted_html
+                self.html_preview.value = formatted_html
+                self.html_preview.visible = True
+                self.body_text.visible = False
+                self.response_type_text.value = f"📄 类型: HTML"
+            elif response_type == "json":
+                # JSON 类型：自动美化
+                self.body_text.value = response.formatted_body
+                self.html_preview.visible = False
+                self.body_text.visible = True
+                self.response_type_text.value = f"📄 类型: JSON"
+            else:
+                # 其他类型
+                self.body_text.value = response.formatted_body
+                self.html_preview.visible = False
+                self.body_text.visible = True
+                type_map = {
+                    "xml": "XML",
+                    "text": "Text",
+                    "unknown": "Unknown"
+                }
+                self.response_type_text.value = f"📄 类型: {type_map.get(response_type, 'Unknown')}"
 
             # 格式化响应头
             headers_str = "\n".join(f"{k}: {v}" for k, v in response.headers.items())
             self.headers_text.value = headers_str
-            
+
             # 格式化 Cookies
             cookies_str = "\n".join(response.headers.get("Set-Cookie", "").split("; "))
             self.cookies_text.value = cookies_str if cookies_str else "无 Cookies"
@@ -629,7 +909,10 @@ class ResponsePanel(ft.Container):
         self.status_text.value = "等待发送请求"
         self.status_text.color = None
         self.time_text.value = ""
+        self.response_type_text.value = ""
         self.body_text.value = ""
         self.headers_text.value = ""
         self.cookies_text.value = ""
+        self.html_preview.visible = False
+        self.body_text.visible = True
         self.update()

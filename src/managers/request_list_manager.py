@@ -3,129 +3,269 @@
 import json
 import os
 import yaml
+import uuid
 from typing import Optional
-from dataclasses import dataclass, field, asdict
 from datetime import datetime
+from urllib.parse import urlparse, parse_qs
+import sys
+
+# 添加src目录到路径
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from models.database import DatabaseManager, RequestListModel
 
 
-@dataclass
 class RequestItem:
     """请求项数据模型"""
-    id: str
-    url: str
-    method: str = "GET"
-    name: str = ""
-    params: dict[str, str] = field(default_factory=dict)
-    headers: dict[str, str] = field(default_factory=dict)
-    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    def __init__(self, id: str, url: str, method: str = "GET", name: str = "",
+                 params: dict = None, headers: dict = None, body: str = "",
+                 body_type: str = "none", created_at: str = None):
+        self.id = id
+        self.url = url
+        self.method = method
+        self.name = name
+        self.params = params or {}
+        self.headers = headers or {}
+        self.body = body or ""
+        self.body_type = body_type or "none"
+        self.created_at = created_at or datetime.now().isoformat()
 
 
 class RequestListManager:
-    """请求 URL 列表管理器"""
-    
-    def __init__(self, storage_file: str = "request_list.json"):
-        self.storage_file = os.path.join(os.path.dirname(__file__), storage_file)
-        self.requests: list[RequestItem] = []
-        self._load_from_file()
-    
-    def _load_from_file(self):
-        """从文件加载请求列表"""
+    """请求 URL 列表管理器（基于数据库）"""
+
+    def __init__(self, db_path: str = None):
+        # 数据库路径默认为与模块同目录下的 mypostman.db
+        if db_path is None:
+            db_path = os.path.join(os.path.dirname(__file__), "mypostman.db")
+        self.db = DatabaseManager(db_path)
+        # 迁移旧数据（如果存在）
+        self._migrate_from_json()
+
+    def _migrate_from_json(self):
+        """从旧的 JSON 文件迁移数据到数据库"""
         try:
-            if os.path.exists(self.storage_file):
-                with open(self.storage_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    self.requests = [RequestItem(**item) for item in data]
-        except Exception:
-            self.requests = []
-    
-    def _save_to_file(self):
-        """保存请求列表到文件"""
-        try:
-            with open(self.storage_file, 'w', encoding='utf-8') as f:
-                json.dump([asdict(r) for r in self.requests], f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass
-    
-    def add_request(self, url: str, method: str = "GET", name: str = "", 
-                   params: dict[str, str] = None, headers: dict[str, str] = None) -> RequestItem:
+            session = self.db.get_session()
+            # 检查数据库中是否已有数据
+            count = session.query(RequestListModel).count()
+            session.close()
+            
+            if count > 0:
+                # 已有数据，不需要迁移
+                return
+
+            storage_file = os.path.join(os.path.dirname(__file__), "request_list.json")
+            if not os.path.exists(storage_file):
+                return
+
+            with open(storage_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            session = self.db.get_session()
+            try:
+                for item in data:
+                    request_model = RequestListModel(
+                        id=item.get('id', str(uuid.uuid4())),
+                        url=item.get('url', ''),
+                        method=item.get('method', 'GET'),
+                        name=item.get('name', ''),
+                        params=json.dumps(item.get('params', {}), ensure_ascii=False),
+                        headers=json.dumps(item.get('headers', {}), ensure_ascii=False),
+                        created_at=datetime.fromisoformat(item.get('created_at', datetime.now().isoformat()))
+                    )
+                    session.add(request_model)
+                session.commit()
+                
+                # 迁移成功后，备份并重命名旧文件
+                backup_file = storage_file + ".backup"
+                if not os.path.exists(backup_file):
+                    os.rename(storage_file, backup_file)
+            except Exception as e:
+                session.rollback()
+                raise e
+            finally:
+                session.close()
+        except Exception as e:
+            # 迁移失败不影响正常使用
+            print(f"迁移旧数据失败（可忽略）: {e}")
+
+    def _model_to_item(self, model: RequestListModel) -> RequestItem:
+        """将数据库模型转换为 RequestItem"""
+        return RequestItem(
+            id=model.id,
+            url=model.url,
+            method=model.method,
+            name=model.name,
+            params=json.loads(model.params) if model.params else {},
+            headers=json.loads(model.headers) if model.headers else {},
+            body=model.body if hasattr(model, 'body') else "",
+            body_type=model.body_type if hasattr(model, 'body_type') else "none",
+            created_at=model.created_at.isoformat() if model.created_at else datetime.now().isoformat()
+        )
+
+    def add_request(self, url: str, method: str = "GET", name: str = "",
+                   params: dict = None, headers: dict = None, body: str = None,
+                   body_type: str = "none") -> RequestItem:
         """
         添加请求项
-        
+
         Args:
             url: 请求 URL
             method: 请求方法
             name: 请求名称（可选）
             params: 请求参数
             headers: 请求头
-            
+            body: 请求体
+            body_type: 请求体类型
+
         Returns:
             RequestItem: 新创建的请求项
         """
-        import uuid
-        
         # 如果没有提供名称，使用 URL 的最后部分
         if not name:
             name = url.split('/')[-1] or url
-        
-        request_item = RequestItem(
-            id=str(uuid.uuid4()),
-            url=url,
-            method=method,
-            name=name,
-            params=params or {},
-            headers=headers or {}
-        )
-        
-        self.requests.append(request_item)
-        self._save_to_file()
-        return request_item
-    
+
+        request_id = str(uuid.uuid4())
+        created_at = datetime.now()
+
+        session = self.db.get_session()
+        try:
+            request_model = RequestListModel(
+                id=request_id,
+                url=url,
+                method=method,
+                name=name,
+                params=json.dumps(params or {}, ensure_ascii=False),
+                headers=json.dumps(headers or {}, ensure_ascii=False),
+                body=body or "",
+                body_type=body_type or "none",
+                created_at=created_at
+            )
+            session.add(request_model)
+            session.commit()
+
+            return self._model_to_item(request_model)
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+
+    def update_request(self, request_id: str, url: str = None, method: str = None,
+                      name: str = None, params: dict = None, headers: dict = None,
+                      body: str = None, body_type: str = None) -> Optional[RequestItem]:
+        """
+        更新请求项
+
+        Args:
+            request_id: 请求项 ID
+            url: 请求 URL
+            method: 请求方法
+            name: 请求名称
+            params: 请求参数
+            headers: 请求头
+            body: 请求体
+            body_type: 请求体类型
+
+        Returns:
+            Optional[RequestItem]: 更新后的请求项，如果不存在则返回 None
+        """
+        session = self.db.get_session()
+        try:
+            request = session.query(RequestListModel).filter_by(id=request_id).first()
+            if not request:
+                return None
+
+            if url is not None:
+                request.url = url
+            if method is not None:
+                request.method = method
+            if name is not None:
+                request.name = name
+            if params is not None:
+                request.params = json.dumps(params, ensure_ascii=False)
+            if headers is not None:
+                request.headers = json.dumps(headers, ensure_ascii=False)
+            if body is not None:
+                request.body = body
+            if body_type is not None:
+                request.body_type = body_type
+
+            session.commit()
+            return self._model_to_item(request)
+        except Exception as e:
+            session.rollback()
+            return None
+        finally:
+            session.close()
+
     def remove_request(self, request_id: str) -> bool:
         """
         删除请求项
-        
+
         Args:
             request_id: 请求项 ID
-            
+
         Returns:
             bool: 是否删除成功
         """
-        original_count = len(self.requests)
-        self.requests = [r for r in self.requests if r.id != request_id]
-        
-        if len(self.requests) < original_count:
-            self._save_to_file()
-            return True
-        return False
-    
+        session = self.db.get_session()
+        try:
+            request = session.query(RequestListModel).filter_by(id=request_id).first()
+            if request:
+                session.delete(request)
+                session.commit()
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            return False
+        finally:
+            session.close()
+
     def get_request(self, request_id: str) -> Optional[RequestItem]:
         """
         获取请求项
-        
+
         Args:
             request_id: 请求项 ID
-            
+
         Returns:
             Optional[RequestItem]: 请求项，如果不存在则返回 None
         """
-        for request in self.requests:
-            if request.id == request_id:
-                return request
-        return None
-    
+        session = self.db.get_session()
+        try:
+            model = session.query(RequestListModel).filter_by(id=request_id).first()
+            if model:
+                return self._model_to_item(model)
+            return None
+        finally:
+            session.close()
+
     def get_all_requests(self) -> list[RequestItem]:
         """
         获取所有请求项
-        
+
         Returns:
             list[RequestItem]: 请求项列表
         """
-        return self.requests.copy()
-    
+        session = self.db.get_session()
+        try:
+            models = session.query(RequestListModel).order_by(RequestListModel.created_at).all()
+            return [self._model_to_item(m) for m in models]
+        finally:
+            session.close()
+
     def clear_all(self):
         """清空所有请求项"""
-        self.requests = []
-        self._save_to_file()
+        session = self.db.get_session()
+        try:
+            session.query(RequestListModel).delete()
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
     
     def import_from_clipboard(self, clipboard_text: str) -> list[RequestItem]:
         """

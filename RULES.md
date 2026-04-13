@@ -70,25 +70,42 @@ ft.run(main)
   # 错误写法
   ft.Dropdown(..., on_change=handler)  # ❌ 使用 on_text_change
   ```
-- **Tab 控件**: `ft.Tab` 的初始化参数为 `label`、`icon`、`height`、`icon_margin`，没有 `content` 参数。`content` 需要在创建 Tab 对象后单独设置。`ft.Tabs` 使用 `content` 属性来包含多个 Tab，值可以是 `ft.Row` 等组件，必须提供 `length` 参数指定 Tab 数量
+- **Tab 控件**: 使用 `ft.Tabs` + `ft.TabBar` + `ft.TabBarView` 的标准结构。`ft.Tab` 的初始化参数为 `label`、`icon`、`height`、`icon_margin`。`ft.TabBar` 用于定义 Tab 标签栏，`ft.TabBarView` 用于定义每个 Tab 的内容视图
   ```python
-  # 正确写法
-  tab1 = ft.Tab(label="Headers")
-  tab1.content = widget1
-  
-  tab2 = ft.Tab(label="Body")
-  tab2.content = widget2
-  
-  tabs = ft.Tabs(
+  # 正确写法 - 使用 TabBar + TabBarView 的标准结构
+  ft.Tabs(
+      length=4,
       selected_index=0,
-      length=2,
-      content=ft.Row(controls=[tab1, tab2])
+      expand=True,
+      content=ft.Column(
+          expand=True,
+          controls=[
+              ft.TabBar(
+                  tab_alignment=ft.TabAlignment.START,
+                  tabs=[
+                      ft.Tab(label=ft.Text("Params")),
+                      ft.Tab(label=ft.Text("Headers")),
+                      ft.Tab(label=ft.Text("Body")),
+                      ft.Tab(label=ft.Text("Runner")),
+                  ],
+              ),
+              ft.TabBarView(
+                  expand=True,
+                  controls=[
+                      self.params_list,
+                      self.headers_list,
+                      self.body_editor,
+                      self.request_runner,
+                  ],
+              ),
+          ],
+      ),
   )
 
   # 错误写法
-  ft.Tab("Headers")  # ❌ 应使用 label=
-  ft.Tab(label="Headers", content=widget)  # ❌ content 不是初始化参数
-  ft.Tabs(content=ft.Row(controls=[tab1, tab2]))  # ❌ 缺少 length=
+  ft.Tab("Headers")  # ❌ label 应使用 ft.Text() 包装
+  ft.Tabs(tabs=[tab1, tab2])  # ❌ 没有tabs参数，应使用content包含TabBar和TabBarView
+  ft.Tabs(content=ft.Row([tab1, tab2]))  # ❌ 缺少TabBar和TabBarView结构
   ```
 
 ### 2.4 SnackBar 使用

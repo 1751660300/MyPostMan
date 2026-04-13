@@ -2,14 +2,103 @@
 
 import flet as ft
 import threading
+import sys
+import os
+import uuid
+
+# 添加src目录到路径
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from models import HttpRequest, HttpMethod
 from services import HttpService
-from history_manager import HistoryManager
-from environment_manager import EnvironmentManager
-from global_variable_manager import GlobalVariableManager
-from request_list_manager import RequestListManager
-from ui_components import DynamicKeyValueList, ResponsePanel, BodyEditor, RequestRunner
+from managers import HistoryManager, EnvironmentManager, GlobalVariableManager, RequestListManager
+from .ui_components import DynamicKeyValueList, ResponsePanel, BodyEditor, RequestRunner
+
+
+class RequestTab:
+    """单个请求Tab的数据和组件"""
+    
+    def __init__(self, tab_id: str, name: str = "新请求"):
+        self.tab_id = tab_id
+        self.name = name
+        self.is_modified = False  # 是否有未保存的修改
+        
+        # 请求组件
+        self.method_dropdown = ft.Dropdown(
+            options=[
+                ft.dropdown.Option("GET"),
+                ft.dropdown.Option("POST"),
+                ft.dropdown.Option("PUT"),
+                ft.dropdown.Option("DELETE"),
+                ft.dropdown.Option("PATCH"),
+                ft.dropdown.Option("HEAD"),
+                ft.dropdown.Option("OPTIONS"),
+            ],
+            value="GET",
+            width=140,
+            label="方法",
+            text_size=14,
+            label_style=ft.TextStyle(size=13, weight=ft.FontWeight.BOLD),
+        )
+        
+        self.url_input = ft.TextField(
+            expand=True,
+            hint_text="api/endpoint",
+            prefix="",
+            text_size=14,
+            label_style=ft.TextStyle(size=13, weight=ft.FontWeight.BOLD),
+        )
+        
+        # 默认请求头
+        default_headers = {
+            "Accept": "application/json, text/plain, */*",
+            "User-Agent": "MyPostMan/1.0",
+        }
+        self.headers_list = DynamicKeyValueList(default_data=default_headers)
+        self.params_list = DynamicKeyValueList()
+        self.body_editor = BodyEditor()
+        self.request_runner = RequestRunner()
+        self.response_panel = ResponsePanel()
+        
+        # 加载指示器
+        self.loading_indicator = ft.ProgressRing(
+            visible=False,
+            width=30,
+            height=30,
+        )
+        
+        # 发送按钮
+        self.send_btn = ft.Button(
+            "发送",
+            icon=ft.Icons.SEND,
+            style=ft.ButtonStyle(
+                bgcolor=ft.Colors.BLUE,
+                color=ft.Colors.WHITE,
+                padding=ft.padding.symmetric(vertical=12, horizontal=20),
+                text_style=ft.TextStyle(size=15, weight=ft.FontWeight.BOLD),
+            ),
+        )
+    
+    def get_request_data(self) -> dict:
+        """获取当前请求的所有数据"""
+        return {
+            'method': self.method_dropdown.value,
+            'url': self.url_input.value,
+            'headers': self.headers_list.get_data(),
+            'params': self.params_list.get_data(),
+            'body': self.body_editor.get_body(),
+            'body_type': self.body_editor.get_body_type(),
+        }
+    
+    def set_request_data(self, data: dict):
+        """设置请求数据"""
+        self.method_dropdown.value = data.get('method', 'GET')
+        self.url_input.value = data.get('url', '')
+        self.headers_list.set_data(data.get('headers', {}))
+        self.params_list.set_data(data.get('params', {}))
+        self.body_editor.set_body(data.get('body', ''))
+        self.body_editor.set_body_type(data.get('body_type', 'none'))
+        self.is_modified = False
 
 
 class ApiTestPage:
@@ -23,6 +112,11 @@ class ApiTestPage:
         self.global_var_manager = GlobalVariableManager()
         self.request_list_manager = RequestListManager()
         self.is_loading = False
+        
+        # 多Tab管理
+        self.request_tabs = []  # 所有RequestTab列表
+        self.current_tab_index = -1  # 当前激活的Tab索引
+        self.tab_bar_row = ft.Row(controls=[], spacing=5, scroll=ft.ScrollMode.AUTO)  # Tab栏UI组件
 
         # 设置页面属性
         self.page.title = "MyPostMan - API 测试工具"
@@ -33,6 +127,266 @@ class ApiTestPage:
         self.page.window_min_height = 700
 
         self._build_ui()
+        
+        # 默认创建一个新Tab
+        self._create_new_tab()
+    
+    def _create_new_tab(self, request_data: dict = None):
+        """创建新的请求Tab"""
+        tab_id = str(uuid.uuid4())[:8]
+        name = f"请求 {len(self.request_tabs) + 1}"
+        
+        new_tab = RequestTab(tab_id, name)
+        
+        if request_data:
+            new_tab.set_request_data(request_data)
+            new_tab.name = request_data.get('name', new_tab.name)
+        
+        self.request_tabs.append(new_tab)
+        self.current_tab_index = len(self.request_tabs) - 1
+        
+        # 更新Tab栏
+        self._update_tab_bar()
+    
+    def _save_tab(self, tab_index: int):
+        """保存指定Tab的请求数据到请求列表"""
+        if tab_index < 0 or tab_index >= len(self.request_tabs):
+            return
+
+        tab = self.request_tabs[tab_index]
+        
+        # 获取当前请求数据
+        request_data = tab.get_request_data()
+        
+        # 构建完整URL
+        full_url = self._build_full_url(request_data['url'])
+        
+        # 添加到请求列表（如果已存在则更新）
+        if hasattr(tab, 'request_list_id') and tab.request_list_id:
+            # 更新现有请求
+            self.request_list_manager.update_request(
+                request_id=tab.request_list_id,
+                url=full_url,
+                method=request_data['method'],
+                params=request_data['params'],
+                headers=request_data['headers'],
+                body=request_data['body'],
+                body_type=request_data['body_type'],
+            )
+        else:
+            # 添加新请求
+            request = self.request_list_manager.add_request(
+                url=full_url,
+                method=request_data['method'],
+                params=request_data['params'],
+                headers=request_data['headers'],
+                body=request_data['body'],
+                body_type=request_data['body_type'],
+            )
+            tab.request_list_id = request.id if request else None
+        
+        # 标记为已保存
+        tab.is_modified = False
+        
+        # 更新Tab栏显示
+        self._update_tab_bar()
+        
+        # 更新请求列表视图
+        self._update_request_list_view()
+        
+        # 显示提示
+        snack_bar = ft.SnackBar(content=ft.Text(f"已保存: {tab.name}"), duration=2000)
+        self.page.overlay.append(snack_bar)
+        snack_bar.open = True
+        self.page.update()
+
+    def _close_tab(self, tab_index: int):
+        """关闭指定Tab"""
+        if tab_index < 0 or tab_index >= len(self.request_tabs):
+            return
+
+        # 如果只剩一个Tab，不允许关闭
+        if len(self.request_tabs) == 1:
+            snack_bar = ft.SnackBar(content=ft.Text("至少保留一个请求Tab"), duration=2000)
+            self.page.overlay.append(snack_bar)
+            snack_bar.open = True
+            self.page.update()
+            return
+
+        # 检查是否有未保存的修改
+        tab = self.request_tabs[tab_index]
+        if tab.is_modified:
+            # 先保存再关闭
+            self._save_tab(tab_index)
+
+        # 删除Tab
+        self.request_tabs.pop(tab_index)
+
+        # 调整当前Tab索引
+        if self.current_tab_index >= tab_index:
+            self.current_tab_index = max(0, self.current_tab_index - 1)
+
+        # 更新Tab栏
+        self._update_tab_bar()
+    
+    def _switch_tab(self, tab_index: int):
+        """切换到指定Tab"""
+        if tab_index < 0 or tab_index >= len(self.request_tabs):
+            return
+        
+        self.current_tab_index = tab_index
+        self._update_tab_bar()
+    
+    def _update_tab_bar(self):
+        """更新Tab栏显示"""
+        # 清空Tab栏
+        self.tab_bar_row.controls.clear()
+
+        # 添加所有Tab
+        for i, tab in enumerate(self.request_tabs):
+            is_active = (i == self.current_tab_index)
+
+            # 创建Tab按钮
+            tab_btn = ft.Container(
+                content=ft.Row(
+                    controls=[
+                        ft.Text(
+                            f"{'● ' if tab.is_modified else ''}{tab.name}",
+                            size=12,
+                            color=ft.Colors.BLUE if is_active else ft.Colors.GREY_700,
+                            weight=ft.FontWeight.BOLD if is_active else ft.FontWeight.NORMAL,
+                        ),
+                        ft.Container(expand=True),  # 占位符，让按钮靠右
+                        ft.IconButton(
+                            icon=ft.Icons.SAVE,
+                            icon_size=16,
+                            icon_color=ft.Colors.GREEN_700 if tab.is_modified else ft.Colors.GREY_400,
+                            on_click=lambda e, idx=i: self._save_tab(idx),
+                            width=24,
+                            height=24,
+                            padding=2,
+                            tooltip="保存此请求",
+                        ),
+                        ft.IconButton(
+                            icon=ft.Icons.CLOSE,
+                            icon_size=16,
+                            icon_color=ft.Colors.RED_700 if tab.is_modified else ft.Colors.GREY_600,
+                            on_click=lambda e, idx=i: self._close_tab(idx),
+                            width=24,
+                            height=24,
+                            padding=2,
+                        ),
+                    ],
+                    spacing=4,
+                    alignment=ft.MainAxisAlignment.START
+                ),
+                padding=ft.padding.symmetric(horizontal=12, vertical=6),
+                bgcolor=ft.Colors.BLUE_50 if is_active else ft.Colors.GREY_100,
+                border_radius=6,
+                border=ft.border.all(2, ft.Colors.BLUE if is_active else ft.Colors.TRANSPARENT),
+                on_click=lambda e, idx=i: self._switch_tab(idx),
+            )
+
+            self.tab_bar_row.controls.append(tab_btn)
+
+        # 添加新建Tab按钮
+        new_tab_btn = ft.IconButton(
+            icon=ft.Icons.ADD,
+            icon_size=20,
+            tooltip="新建请求Tab",
+            on_click=lambda e: self._create_new_tab(),
+        )
+        self.tab_bar_row.controls.append(new_tab_btn)
+
+        # 更新UI
+        try:
+            if self.tab_bar_row.page:
+                self.tab_bar_row.update()
+        except RuntimeError:
+            pass
+
+        # 更新当前Tab的内容
+        self._load_current_tab()
+    
+    def _load_current_tab(self):
+        """加载当前Tab的内容到界面"""
+        if self.current_tab_index < 0 or self.current_tab_index >= len(self.request_tabs):
+            return
+
+        current_tab = self.request_tabs[self.current_tab_index]
+
+        # 更新URL输入框
+        self.url_input.value = current_tab.url_input.value
+        
+        # 更新方法下拉框
+        self.method_dropdown.value = current_tab.method_dropdown.value
+        
+        # 更新Params
+        self.params_list.set_data(current_tab.params_list.get_data())
+        
+        # 更新Headers
+        self.headers_list.set_data(current_tab.headers_list.get_data())
+        
+        # 更新Body
+        self.body_editor.set_body(current_tab.body_editor.get_body())
+        self.body_editor.set_body_type(current_tab.body_editor.get_body_type())
+        
+        # 更新Runner和响应面板(这些组件状态不需要特殊处理)
+        
+        # 统一更新UI - 只在控件已添加到页面后才调用update()
+        try:
+            if self.url_input.page:
+                self.url_input.update()
+            if self.method_dropdown.page:
+                self.method_dropdown.update()
+            if self.params_list.page:
+                self.params_list.update()
+            if self.headers_list.page:
+                self.headers_list.update()
+            if self.body_editor.page:
+                self.body_editor.update()
+        except RuntimeError:
+            # 控件还未添加到页面，忽略错误
+            pass
+    
+    def _sync_ui_to_current_tab(self):
+        """将界面组件的数据同步到当前Tab对象"""
+        if self.current_tab_index < 0 or self.current_tab_index >= len(self.request_tabs):
+            return
+        
+        current_tab = self.request_tabs[self.current_tab_index]
+        
+        # 同步URL和方法
+        current_tab.url_input.value = self.url_input.value
+        current_tab.method_dropdown.value = self.method_dropdown.value
+        
+        # 同步Params和Headers
+        current_tab.params_list.set_data(self.params_list.get_data())
+        current_tab.headers_list.set_data(self.headers_list.get_data())
+        
+        # 同步Body
+        current_tab.body_editor.set_body(self.body_editor.get_body())
+        current_tab.body_editor.set_body_type(self.body_editor.get_body_type())
+        
+        # 标记为已修改
+        current_tab.is_modified = True
+    
+    def _on_tab_url_change(self, e):
+        """当前Tab的URL变化时标记为已修改并同步数据"""
+        if self.current_tab_index >= 0 and self.current_tab_index < len(self.request_tabs):
+            # 同步数据到Tab对象
+            self._sync_ui_to_current_tab()
+            self._update_tab_bar()
+            
+            # 调用URL自动解析逻辑
+            self._on_url_change(e)
+
+    def _on_tab_method_change(self, e):
+        """当前Tab的方法变化时标记为已修改并同步数据"""
+        if self.current_tab_index >= 0 and self.current_tab_index < len(self.request_tabs):
+            # 同步数据到Tab对象
+            self._sync_ui_to_current_tab()
+            self._update_tab_bar()
     
     def _on_toggle_history(self, e):
         """切换历史记录区域的展开/折叠"""
@@ -63,6 +417,74 @@ class ApiTestPage:
         toggle_btn.icon = ft.Icons.EXPAND_LESS if not is_visible else ft.Icons.EXPAND_MORE
 
         self.request_list_section.update()
+
+    def _on_url_change(self, e):
+        """URL输入框内容变化时自动解析参数"""
+        url = self.url_input.value.strip()
+        if not url:
+            return
+        
+        # 解析URL中的查询参数
+        params = self._parse_url_params(url)
+        
+        # 如果有参数且当前params列表为空，自动填充
+        if params and not self.params_list.get_data():
+            self.params_list.set_data(params)
+            try:
+                self.params_list.update()
+            except:
+                pass
+            
+            # 清理URL中的查询参数，只保留路径部分
+            clean_url = self._clean_url_params(url)
+            if clean_url != url:
+                self.url_input.value = clean_url
+                try:
+                    self.url_input.update()
+                except:
+                    pass
+
+    def _parse_url_params(self, url: str) -> dict[str, str]:
+        """从URL中解析查询参数"""
+        from urllib.parse import urlparse, parse_qs
+        
+        try:
+            # 如果URL不包含协议，添加临时协议用于解析
+            if not url.startswith(('http://', 'https://')):
+                url = 'http://temp' + url
+            
+            parsed = urlparse(url)
+            
+            # 解析查询参数
+            if parsed.query:
+                query_params = parse_qs(parsed.query)
+                # parse_qs返回的是列表，转换为单个值
+                return {k: v[0] if len(v) == 1 else v for k, v in query_params.items()}
+            
+            return {}
+        except Exception:
+            return {}
+    
+    def _clean_url_params(self, url: str) -> str:
+        """清理URL中的查询参数，只保留路径部分"""
+        from urllib.parse import urlparse
+        
+        try:
+            # 如果URL不包含协议，添加临时协议用于解析
+            if not url.startswith(('http://', 'https://')):
+                url = 'http://temp' + url
+                parsed = urlparse(url)
+                # 重建不带查询参数的URL
+                clean_path = f"{parsed.path}"
+                # 如果原始URL以/开头，返回相对路径
+                if clean_path.startswith('/'):
+                    return clean_path[1:] if clean_path != '/' else ''
+                return clean_path
+            else:
+                parsed = urlparse(url)
+                return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        except Exception:
+            return url
     
     def _update_request_list_view(self):
         """更新请求 URL 列表视图"""
@@ -197,30 +619,31 @@ class ApiTestPage:
         self._update_request_list_view()
     
     def _on_request_list_click(self, e):
-        """点击请求列表项"""
+        """点击请求列表项，创建新的Tab页"""
         req = e.control.data
         if req:
             # 从完整 URL 中提取路径部分
             path_url = self._extract_path_from_url(req.url)
-            
-            # 设置 URL
-            self.url_input.value = path_url
-            
-            # 设置请求方法
-            self.method_dropdown.value = req.method
-            
-            # 设置参数
-            if req.params:
-                self.params_list.set_data(req.params)
-            
-            # 设置请求头
-            if req.headers:
-                self.headers_list.set_data(req.headers)
-            
-            # 更新 UI
-            self.page.update()
-            
-            snack_bar = ft.SnackBar(content=ft.Text(f"已加载: {req.name or req.url}"), duration=1500)
+
+            # 构建请求数据
+            request_data = {
+                'name': req.name or req.url,
+                'method': req.method,
+                'url': path_url,
+                'params': req.params if hasattr(req, 'params') else {},
+                'headers': req.headers if hasattr(req, 'headers') else {},
+                'body': req.body if hasattr(req, 'body') else '',
+                'body_type': req.body_type if hasattr(req, 'body_type') else 'none',
+            }
+
+            # 创建新的Tab
+            self._create_new_tab(request_data)
+
+            # 保存request_list_id以便后续更新
+            if hasattr(req, 'id'):
+                self.request_tabs[self.current_tab_index].request_list_id = req.id
+
+            snack_bar = ft.SnackBar(content=ft.Text(f"已打开新Tab: {req.name or req.url}"), duration=1500)
             self.page.overlay.append(snack_bar)
             snack_bar.open = True
             self.page.update()
@@ -241,12 +664,15 @@ class ApiTestPage:
 
     def _build_sidebar(self) -> ft.Container:
         """构建侧边栏（历史记录 + 环境管理 + 请求列表）"""
+        # 历史记录列表 - 设置最大高度
         self.history_list = ft.ListView(
-            expand=True,
+            expand=False,
             spacing=8,
             padding=8,
+            height=300,  # 最大高度300px
+            auto_scroll=False,
         )
-        
+
         # 清空历史按钮（必须在 history_section 之前定义）
         self.clear_history_btn = ft.Button(
             "清空历史",
@@ -258,11 +684,13 @@ class ApiTestPage:
             ),
         )
 
-        # 请求列表
+        # 请求列表 - 设置最大高度
         self.request_list_view = ft.ListView(
-            expand=True,
+            expand=False,
             spacing=6,
             padding=8,
+            height=300,  # 最大高度300px
+            auto_scroll=False,
         )
         self._update_request_list_view()
         
@@ -306,13 +734,13 @@ class ApiTestPage:
                         ],
                         spacing=0,
                     ),
-                    expand=True,
+                    height=350,  # 固定高度容器（包含列表300px + 按钮约50px）
                     visible=True,
                 ),
             ],
             spacing=0,
         )
-        
+
         # 请求列表区域（可展开）
         self.request_list_section = ft.Column(
             controls=[
@@ -365,7 +793,7 @@ class ApiTestPage:
                         ],
                         spacing=0,
                     ),
-                    expand=True,
+                    height=350,  # 固定高度容器（包含列表300px + 按钮约50px）
                     visible=True,
                 ),
             ],
@@ -450,8 +878,12 @@ class ApiTestPage:
         )
 
     def _build_main_content(self) -> ft.Container:
-        """构建主内容区（请求表单 + 响应展示）"""
-        # 请求方法下拉框
+        """构建主内容区域 - 显示请求编辑界面"""
+        # [步骤2-完成] 构建Tab栏
+        # Tab栏已在类初始化时创建(self.tab_bar_row)
+        
+        # [步骤2-完成] 构建请求编辑区域 - 这些是全局显示组件
+        # 方法下拉框
         self.method_dropdown = ft.Dropdown(
             options=[
                 ft.dropdown.Option("GET"),
@@ -467,46 +899,103 @@ class ApiTestPage:
             label="方法",
             text_size=14,
             label_style=ft.TextStyle(size=13, weight=ft.FontWeight.BOLD),
+            on_select=self._on_tab_method_change,
         )
 
-        # URL 输入框
+        # URL输入框
         self.url_input = ft.TextField(
-            # label="请求 URL",
             expand=True,
-            hint_text="api/endpoint",
-            prefix="",
+            hint_text="输入请求URL地址",
             text_size=14,
             label_style=ft.TextStyle(size=13, weight=ft.FontWeight.BOLD),
+            on_change=self._on_tab_url_change,
         )
-        
-        # 初始化 URL 前缀
-        self._update_url_prefix()
 
         # 发送按钮
         self.send_btn = ft.Button(
             "发送",
             icon=ft.Icons.SEND,
-            on_click=self._on_send_request,
             style=ft.ButtonStyle(
                 bgcolor=ft.Colors.BLUE,
                 color=ft.Colors.WHITE,
                 padding=ft.padding.symmetric(vertical=12, horizontal=20),
                 text_style=ft.TextStyle(size=15, weight=ft.FontWeight.BOLD),
             ),
+            on_click=self._on_send_request,
         )
-        
-        # Headers 和 Params 列表
-        self.headers_list = DynamicKeyValueList()
+
+        # Headers和Params列表
+        default_headers = {
+            "Accept": "application/json, text/plain, */*",
+            "User-Agent": "MyPostMan/1.0",
+        }
+        self.headers_list = DynamicKeyValueList(default_data=default_headers)
         self.params_list = DynamicKeyValueList()
         
-        # Body 编辑器
+        # Body编辑器
         self.body_editor = BodyEditor()
         
-        # 请求运行器（请求次数和并发数）
+        # 请求运行器
         self.request_runner = RequestRunner()
+        
+        # 响应面板
+        self.response_panel = ResponsePanel()
 
-        # 请求配置 Tabs（使用 TabBar + TabBarView）
-        self.request_tabs = ft.Tabs(
+        # 加载指示器
+        self.loading_indicator = ft.ProgressRing(
+            visible=False,
+            width=30,
+            height=30,
+        )
+
+        # [步骤2-完成] 组装主内容区域
+        return ft.Container(
+            content=ft.Column(
+                controls=[
+                    # Tab栏
+                    self.tab_bar_row,
+                    ft.Divider(height=1),
+                    
+                    # URL输入区域
+                    ft.Container(
+                        content=ft.Row(
+                            controls=[
+                                self.method_dropdown,
+                                self.url_input,
+                                self.send_btn,
+                                self.loading_indicator,
+                            ],
+                            spacing=10,
+                        ),
+                        padding=10,
+                    ),
+                    
+                    # 请求配置区域(可滚动)
+                    ft.Container(
+                        content=self._build_request_tabs(),
+                        expand=True,
+                    ),
+                    
+                    # 响应面板区域
+                    ft.Container(
+                        content=ft.Column(
+                            controls=[
+                                self.response_panel,
+                            ],
+                            spacing=10,
+                        ),
+                        expand=True,
+                    ),
+                ],
+                expand=True,
+            ),
+            expand=True,
+        )
+
+    def _build_request_tabs(self) -> ft.Tabs:
+        """构建请求配置Tab控件(Params/Headers/Body/Runner)"""
+        # 使用 TabBar + TabBarView 的标准结构
+        return ft.Tabs(
             length=4,
             selected_index=0,
             expand=True,
@@ -534,55 +1023,11 @@ class ApiTestPage:
                 ],
             ),
         )
-
-        # 响应面板
-        self.response_panel = ResponsePanel()
-
-        # 加载指示器
-        self.loading_indicator = ft.ProgressRing(
-            visible=False,
-            width=30,
-            height=30,
-        )
-
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    # 顶部：URL 输入行
-                    ft.Container(
-                        content=ft.Row(
-                            controls=[
-                                self.method_dropdown,
-                                self.url_input,
-                                self.loading_indicator,
-                                self.send_btn,
-                            ],
-                            spacing=8,
-                            alignment=ft.MainAxisAlignment.START,
-                        ),
-                        padding=12,
-                        bgcolor=ft.Colors.GREY_50,
-                        border_radius=8,
-                    ),
-                    ft.Container(height=8),
-                    # 中间：请求配置 Tabs
-                    ft.Container(
-                        content=self.request_tabs,
-                        expand=True,
-                    ),
-                    ft.Container(height=8),
-                    # 底部：响应展示
-                    ft.Container(
-                        content=self.response_panel,
-                        expand=True,
-                    ),
-                ],
-                expand=True,
-                spacing=0,
-            ),
-            expand=True,
-            padding=15,
-        )
+    
+    def _on_request_tab_change(self, e):
+        """请求配置Tab切换时同步数据"""
+        # 同步当前界面数据到Tab对象
+        self._sync_ui_to_current_tab()
 
     def _on_send_request(self, e):
         """发送请求按钮点击事件"""
@@ -918,26 +1363,30 @@ class ApiTestPage:
         self.history_list.update()
 
     def _on_history_click(self, e):
-        """点击历史记录项"""
-        entry = e.control.data
-        if entry:
-            # 恢复请求数据
-            self.method_dropdown.value = entry.method.value
-            
-            # 从完整 URL 中提取路径部分（移除 base_url 前缀）
-            full_url = entry.request.url
-            path_url = self._extract_path_from_url(full_url)
-            
-            self.url_input.value = path_url
-            self.headers_list.set_data(entry.request.headers)
-            self.params_list.set_data(entry.request.params)
-            self.body_editor.set_body(entry.request.body or "")
-            self.body_editor.set_body_type(entry.request.body_type)
+        """点击历史记录项，创建新的Tab页"""
+        history = e.control.data
+        if history:
+            # 从完整 URL 中提取路径部分
+            path_url = self._extract_path_from_url(history.url)
 
-            # 更新响应
-            self.response_panel.update_response(entry.response)
+            # 构建请求数据
+            import json
+            request_data = {
+                'name': f"历史 - {history.url}",
+                'method': history.method,
+                'url': path_url,
+                'params': json.loads(history.request_params) if history.request_params else {},
+                'headers': json.loads(history.request_headers) if history.request_headers else {},
+                'body': history.request_body if hasattr(history, 'request_body') else '',
+                'body_type': history.request_body_type if hasattr(history, 'request_body_type') else 'none',
+            }
 
-            # 更新所有控件
+            # 创建新的Tab
+            self._create_new_tab(request_data)
+
+            snack_bar = ft.SnackBar(content=ft.Text(f"已打开新Tab: {history.url}"), duration=1500)
+            self.page.overlay.append(snack_bar)
+            snack_bar.open = True
             self.page.update()
 
     def _on_clear_history(self, e):

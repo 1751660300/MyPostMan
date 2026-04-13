@@ -1,5 +1,10 @@
 """测试变量解析功能"""
 import re
+import sys
+import os
+
+# 添加src目录到路径
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 def test_variable_resolution():
     """测试变量解析"""

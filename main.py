@@ -1,78 +1,14 @@
-import random
+"""MyPostMan 应用启动入口"""
 
-import flet as ft
+import sys
+import os
 
+# 添加src目录到路径
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-def main(page: ft.Page):
-    async def handle_move_to_random(e: ft.Event[ft.FloatingActionButton]):
-        # random index, excluding the current one
-        i = random.choice([i for i in range(tabs.length) if i != tabs.selected_index])
-
-        await tabs.move_to(
-            index=i,
-            animation_curve=ft.AnimationCurve.FAST_OUT_SLOWIN,
-            animation_duration=ft.Duration(milliseconds=500),
-        )
-
-    page.floating_action_button = ft.FloatingActionButton(
-        icon=ft.Icons.MOVE_UP,
-        content="Move to a random tab",
-        on_click=handle_move_to_random,
-    )
-
-    tabs = ft.Tabs(
-        length=6,
-        selected_index=5,
-        expand=True,
-        content=ft.Column(
-            expand=True,
-            controls=[
-                ft.TabBar(
-                    tab_alignment=ft.TabAlignment.CENTER,
-                    tabs=[
-                        ft.Tab(label=ft.Text("Tab 1")),
-                        ft.Tab(label=ft.Text("Tab 2")),
-                        ft.Tab(label=ft.Text("Tab 3")),
-                        ft.Tab(label=ft.Text("Tab 4")),
-                        ft.Tab(label=ft.Text("Tab 5")),
-                        ft.Tab(label=ft.Text("Tab 6")),
-                    ],
-                ),
-                ft.TabBarView(
-                    expand=True,
-                    controls=[
-                        ft.Container(
-                            alignment=ft.Alignment.CENTER,
-                            content=ft.Text("Tab 1 content"),
-                        ),
-                        ft.Container(
-                            alignment=ft.Alignment.CENTER,
-                            content=ft.Text("Tab 2 content"),
-                        ),
-                        ft.Container(
-                            alignment=ft.Alignment.CENTER,
-                            content=ft.Text("Tab 3 content"),
-                        ),
-                        ft.Container(
-                            alignment=ft.Alignment.CENTER,
-                            content=ft.Text("Tab 4 content"),
-                        ),
-                        ft.Container(
-                            alignment=ft.Alignment.CENTER,
-                            content=ft.Text("Tab 5 content"),
-                        ),
-                        ft.Container(
-                            alignment=ft.Alignment.CENTER,
-                            content=ft.Text("Tab 6 content"),
-                        ),
-                    ],
-                ),
-            ],
-        ),
-    )
-
-    page.add(ft.SafeArea(expand=True, content=tabs))
-
+# 导入并运行应用
+from src.main import main
 
 if __name__ == "__main__":
+    import flet as ft
     ft.run(main)
