@@ -4,7 +4,12 @@ import time
 import requests
 import sys
 import os
+import warnings
 from typing import Optional
+from urllib3.exceptions import InsecureRequestWarning
+
+# 抑制 InsecureRequestWarning 警告（当用户选择不验证 SSL 证书时）
+requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 # 添加src目录到路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))

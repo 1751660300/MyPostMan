@@ -1042,13 +1042,68 @@ class ApiTestPage:
             self.page.update()
             return
 
+        # 检查 SSL 配置，如果不验证则弹框提示
+        if not self.request_runner.is_ssl_verify():
+            self._show_ssl_warning_dialog(url)
+            return
+
+        # 直接发送请求（SSL 验证开启）
+        self._do_send_request(url)
+    
+    def _show_ssl_warning_dialog(self, url: str):
+        """显示 SSL 警告对话框"""
+        def on_confirm(e):
+            """确认继续发送请求"""
+            self.page.pop_dialog()
+            self._do_send_request(url)
+        
+        def on_cancel(e):
+            """取消发送请求"""
+            self.page.pop_dialog()
+        
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("⚠️ SSL 证书验证已关闭"),
+            content=ft.Text(
+                '当前 Runner 配置中 SSL 认证设置为"不认证"。\n\n'
+                "这意味着请求将不会验证服务器的 SSL 证书，可能存在安全风险。\n\n"
+                "建议：\n"
+                "• 生产环境：请开启 SSL 认证\n"
+                "• 测试环境/自签名证书：可以继续使用\n\n"
+                "是否继续发送请求？",
+                size=14,
+            ),
+            actions=[
+                ft.TextButton(
+                    "取消",
+                    on_click=on_cancel,
+                ),
+                ft.TextButton(
+                    "继续发送",
+                    on_click=on_confirm,
+                    style=ft.ButtonStyle(
+                        color=ft.Colors.ORANGE,
+                    ),
+                ),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        
+        self.page.dialog = dialog
+        self.page.show_dialog(dialog)
+    
+    def _do_send_request(self, url: str):
+        """执行发送请求的逻辑"""
         # 显示加载状态
         self.is_loading = True
         self.loading_indicator.visible = True
         self.send_btn.disabled = True
-        self.loading_indicator.update()
-        self.send_btn.update()
-        
+        try:
+            self.loading_indicator.update()
+            self.send_btn.update()
+        except RuntimeError:
+            pass
+
         # 重置进度
         self.request_runner.reset_progress()
 
