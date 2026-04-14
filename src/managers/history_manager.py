@@ -142,6 +142,42 @@ class HistoryManager:
         finally:
             session.close()
 
+    def get_paged(self, page: int = 1, page_size: int = 20) -> tuple[list[HistoryItem], int]:
+        """
+        分页查询历史记录（按时间倒序）
+
+        Args:
+            page: 页码（从1开始）
+            page_size: 每页数量
+
+        Returns:
+            tuple: (历史记录列表, 总记录数)
+        """
+        session = self.db.get_session()
+        try:
+            # 获取总记录数
+            total = session.query(HistoryModel).count()
+
+            # 计算偏移量
+            offset = (page - 1) * page_size
+
+            # 分页查询，按时间倒序
+            models = session.query(HistoryModel).order_by(
+                HistoryModel.timestamp.desc()
+            ).limit(page_size).offset(offset).all()
+
+            return [self._model_to_item(m) for m in models], total
+        finally:
+            session.close()
+
+    def get_total_count(self) -> int:
+        """获取历史记录总数"""
+        session = self.db.get_session()
+        try:
+            return session.query(HistoryModel).count()
+        finally:
+            session.close()
+
     def _model_to_item(self, model: HistoryModel) -> HistoryItem:
         """将数据库模型转换为 HistoryItem"""
         # 解析请求数据

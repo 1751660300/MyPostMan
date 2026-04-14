@@ -118,6 +118,19 @@ class ApiTestPage:
         self.current_tab_index = -1  # 当前激活的Tab索引
         self.tab_bar_row = ft.Row(controls=[], spacing=5, scroll=ft.ScrollMode.AUTO)  # Tab栏UI组件
 
+        # 历史记录分页状态
+        self.history_page = 1
+        self.history_page_size = 20
+        # 搜索过滤状态
+        self.history_search_keyword = ""
+        self.request_list_search_keyword = ""
+
+        self.history_pagination = ft.Row(
+            controls=[],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=10,
+        )
+
         # 设置页面属性
         self.page.title = "MyPostMan - API 测试工具"
         self.page.theme_mode = ft.ThemeMode.LIGHT
@@ -127,7 +140,10 @@ class ApiTestPage:
         self.page.window_min_height = 700
 
         self._build_ui()
-        
+
+        # 加载历史记录
+        self._update_history_list()
+
         # 默认创建一个新Tab
         self._create_new_tab()
     
@@ -168,6 +184,7 @@ class ApiTestPage:
                 request_id=tab.request_list_id,
                 url=full_url,
                 method=request_data['method'],
+                name=tab.name,  # 添加名称更新
                 params=request_data['params'],
                 headers=request_data['headers'],
                 body=request_data['body'],
@@ -247,41 +264,62 @@ class ApiTestPage:
             is_active = (i == self.current_tab_index)
 
             # 创建Tab按钮
+            # 保存按钮：只在有未保存的修改时显示
+            save_btn = ft.IconButton(
+                icon=ft.Icons.SAVE,
+                icon_size=16,
+                icon_color=ft.Colors.GREEN_700,
+                on_click=lambda e, idx=i: self._save_tab(idx),
+                width=24,
+                height=24,
+                padding=2,
+                tooltip="保存此请求",
+                visible=tab.is_modified,  # 只在有修改时显示
+            )
+            
+            # 重命名按钮
+            rename_btn = ft.IconButton(
+                icon=ft.Icons.EDIT,
+                icon_size=16,
+                icon_color=ft.Colors.BLUE_700,
+                on_click=lambda e, idx=i: self._show_rename_dialog(idx),
+                width=24,
+                height=24,
+                padding=2,
+                tooltip="重命名此Tab",
+            )
+
+            # 关闭按钮：始终显示
+            close_btn = ft.IconButton(
+                icon=ft.Icons.CLOSE,
+                icon_size=16,
+                icon_color=ft.Colors.RED_700 if tab.is_modified else ft.Colors.GREY_600,
+                on_click=lambda e, idx=i: self._close_tab(idx),
+                width=24,
+                height=24,
+                padding=2,
+                tooltip="关闭此Tab",
+            )
+            
             tab_btn = ft.Container(
                 content=ft.Row(
                     controls=[
                         ft.Text(
-                            f"{'● ' if tab.is_modified else ''}{tab.name}",
+                            f"{'● ' if tab.is_modified else ''}{tab.name}",     
                             size=12,
                             color=ft.Colors.BLUE if is_active else ft.Colors.GREY_700,
                             weight=ft.FontWeight.BOLD if is_active else ft.FontWeight.NORMAL,
                         ),
-                        ft.Container(expand=True),  # 占位符，让按钮靠右
-                        ft.IconButton(
-                            icon=ft.Icons.SAVE,
-                            icon_size=16,
-                            icon_color=ft.Colors.GREEN_700 if tab.is_modified else ft.Colors.GREY_400,
-                            on_click=lambda e, idx=i: self._save_tab(idx),
-                            width=24,
-                            height=24,
-                            padding=2,
-                            tooltip="保存此请求",
-                        ),
-                        ft.IconButton(
-                            icon=ft.Icons.CLOSE,
-                            icon_size=16,
-                            icon_color=ft.Colors.RED_700 if tab.is_modified else ft.Colors.GREY_600,
-                            on_click=lambda e, idx=i: self._close_tab(idx),
-                            width=24,
-                            height=24,
-                            padding=2,
-                        ),
+                        ft.Container(expand=True),  # 占位符，让按钮靠右        
+                        save_btn,   # 保存按钮（条件显示）
+                        rename_btn, # 重命名按钮（始终显示）
+                        close_btn,  # 关闭按钮（始终显示）
                     ],
                     spacing=4,
                     alignment=ft.MainAxisAlignment.START
                 ),
-                padding=ft.padding.symmetric(horizontal=12, vertical=6),
-                bgcolor=ft.Colors.BLUE_50 if is_active else ft.Colors.GREY_100,
+                padding=ft.padding.symmetric(horizontal=12, vertical=6),        
+                bgcolor=ft.Colors.BLUE_50 if is_active else ft.Colors.GREY_100, 
                 border_radius=6,
                 border=ft.border.all(2, ft.Colors.BLUE if is_active else ft.Colors.TRANSPARENT),
                 on_click=lambda e, idx=i: self._switch_tab(idx),
@@ -387,6 +425,78 @@ class ApiTestPage:
             # 同步数据到Tab对象
             self._sync_ui_to_current_tab()
             self._update_tab_bar()
+    
+    def _show_rename_dialog(self, tab_index: int):
+        """显示重命名对话框"""
+        if tab_index < 0 or tab_index >= len(self.request_tabs):
+            return
+        
+        tab = self.request_tabs[tab_index]
+        
+        # 创建文本输入框
+        name_input = ft.TextField(
+            value=tab.name,
+            label="Tab 名称",
+            text_size=14,
+            autofocus=True,
+        )
+        
+        def on_confirm(e):
+            """确认重命名"""
+            new_name = name_input.value.strip()
+            if new_name:
+                tab.name = new_name
+                tab.is_modified = True  # 标记为已修改
+                self._update_tab_bar()
+                self.page.pop_dialog()
+        
+        def on_cancel(e):
+            """取消重命名"""
+            self.page.pop_dialog()
+        
+        def on_key_press(e):
+            """回车键确认"""
+            if e.key == "ENTER":
+                on_confirm(e)
+            elif e.key == "ESCAPE":
+                on_cancel(e)
+        
+        name_input.on_submit = on_confirm
+        name_input.on_key_press = on_key_press
+        
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("重命名 Tab"),
+            content=ft.Column(
+                controls=[
+                    name_input,
+                ],
+                tight=True,
+            ),
+            actions=[
+                ft.TextButton(
+                    "取消",
+                    on_click=on_cancel,
+                ),
+                ft.TextButton(
+                    "确定",
+                    on_click=on_confirm,
+                    style=ft.ButtonStyle(
+                        color=ft.Colors.BLUE,
+                    ),
+                ),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        
+        self.page.dialog = dialog
+        self.page.show_dialog(dialog)
+        
+        # 自动聚焦到输入框
+        try:
+            name_input.focus()
+        except:
+            pass
     
     def _on_toggle_history(self, e):
         """切换历史记录区域的展开/折叠"""
@@ -619,31 +729,45 @@ class ApiTestPage:
         self._update_request_list_view()
     
     def _on_request_list_click(self, e):
-        """点击请求列表项，创建新的Tab页"""
+        """点击请求列表项，创建新的Tab页或跳转到已存在的Tab"""
         req = e.control.data
         if req:
-            # 从完整 URL 中提取路径部分
-            path_url = self._extract_path_from_url(req.url)
+            # 检查是否已经有相同 request_list_id 的 Tab 打开
+            existing_tab_index = None
+            for i, tab in enumerate(self.request_tabs):
+                if hasattr(tab, 'request_list_id') and tab.request_list_id == req.id:
+                    existing_tab_index = i
+                    break
+            
+            if existing_tab_index is not None:
+                # 如果已存在，跳转到该 Tab
+                self._switch_tab(existing_tab_index)
+                snack_bar = ft.SnackBar(content=ft.Text(f"已跳转到: {req.name or req.url}"), duration=1500)
+            else:
+                # 如果不存在，创建新的Tab
+                # 从完整 URL 中提取路径部分
+                path_url = self._extract_path_from_url(req.url)
 
-            # 构建请求数据
-            request_data = {
-                'name': req.name or req.url,
-                'method': req.method,
-                'url': path_url,
-                'params': req.params if hasattr(req, 'params') else {},
-                'headers': req.headers if hasattr(req, 'headers') else {},
-                'body': req.body if hasattr(req, 'body') else '',
-                'body_type': req.body_type if hasattr(req, 'body_type') else 'none',
-            }
+                # 构建请求数据
+                request_data = {
+                    'name': req.name or req.url,
+                    'method': req.method,
+                    'url': path_url,
+                    'params': req.params if hasattr(req, 'params') else {},
+                    'headers': req.headers if hasattr(req, 'headers') else {},
+                    'body': req.body if hasattr(req, 'body') else '',
+                    'body_type': req.body_type if hasattr(req, 'body_type') else 'none',
+                }
 
-            # 创建新的Tab
-            self._create_new_tab(request_data)
+                # 创建新的Tab
+                self._create_new_tab(request_data)
 
-            # 保存request_list_id以便后续更新
-            if hasattr(req, 'id'):
-                self.request_tabs[self.current_tab_index].request_list_id = req.id
+                # 保存request_list_id以便后续更新
+                if hasattr(req, 'id'):
+                    self.request_tabs[self.current_tab_index].request_list_id = req.id
 
-            snack_bar = ft.SnackBar(content=ft.Text(f"已打开新Tab: {req.name or req.url}"), duration=1500)
+                snack_bar = ft.SnackBar(content=ft.Text(f"已打开新Tab: {req.name or req.url}"), duration=1500)
+            
             self.page.overlay.append(snack_bar)
             snack_bar.open = True
             self.page.update()
@@ -720,7 +844,10 @@ class ApiTestPage:
                     content=ft.Column(
                         controls=[
                             self.history_list,
-                            ft.Container(height=10),
+                            ft.Container(height=5),
+                            # 分页控件
+                            self.history_pagination,
+                            ft.Container(height=5),
                             ft.Row(
                                 controls=[
                                     ft.TextButton(
@@ -734,7 +861,7 @@ class ApiTestPage:
                         ],
                         spacing=0,
                     ),
-                    height=350,  # 固定高度容器（包含列表300px + 按钮约50px）
+                    height=400,  # 固定高度容器（包含列表300px + 分页控件约50px + 按钮约50px）
                     visible=True,
                 ),
             ],
@@ -1374,10 +1501,15 @@ class ApiTestPage:
         self.send_btn.update()
 
     def _update_history_list(self):
-        """更新历史记录列表显示"""
+        """更新历史记录列表显示（支持分页）"""
         self.history_list.controls.clear()
 
-        history = self.history_manager.get_recent(50)
+        # 使用分页查询
+        history, total = self.history_manager.get_paged(
+            page=self.history_page,
+            page_size=self.history_page_size
+        )
+
         for entry in history:
             # 状态码颜色
             if entry.response.is_success:
@@ -1415,7 +1547,68 @@ class ApiTestPage:
             )
             self.history_list.controls.append(tile)
 
-        self.history_list.update()
+        # 更新分页控件
+        self._update_history_pagination(total)
+
+        try:
+            if self.history_list.page:
+                self.history_list.update()
+        except RuntimeError:
+            pass
+
+    def _update_history_pagination(self, total: int):
+        """更新历史记录分页控件"""
+        self.history_pagination.controls.clear()
+
+        total_pages = (total + self.history_page_size - 1) // self.history_page_size
+
+        # 上一页按钮
+        if self.history_page > 1:
+            self.history_pagination.controls.append(
+                ft.IconButton(
+                    icon=ft.Icons.CHEVRON_LEFT,
+                    icon_size=18,
+                    tooltip="上一页",
+                    on_click=lambda e: self._history_prev_page(),
+                )
+            )
+
+        # 页码信息
+        self.history_pagination.controls.append(
+            ft.Text(
+                f"第 {self.history_page}/{total_pages} 页 (共 {total} 条)",
+                size=11,
+                color=ft.Colors.GREY_600,
+            )
+        )
+
+        # 下一页按钮
+        if self.history_page < total_pages:
+            self.history_pagination.controls.append(
+                ft.IconButton(
+                    icon=ft.Icons.CHEVRON_RIGHT,
+                    icon_size=18,
+                    tooltip="下一页",
+                    on_click=lambda e: self._history_next_page(),
+                )
+            )
+
+        try:
+            if self.history_pagination.page:
+                self.history_pagination.update()
+        except RuntimeError:
+            pass
+
+    def _history_prev_page(self):
+        """上一页"""
+        if self.history_page > 1:
+            self.history_page -= 1
+            self._update_history_list()
+
+    def _history_next_page(self):
+        """下一页"""
+        self.history_page += 1
+        self._update_history_list()
 
     def _on_history_click(self, e):
         """点击历史记录项，创建新的Tab页"""
@@ -1424,16 +1617,15 @@ class ApiTestPage:
             # 从完整 URL 中提取路径部分
             path_url = self._extract_path_from_url(history.url)
 
-            # 构建请求数据
-            import json
+            # 构建请求数据（使用 HistoryItem 的 request 对象）
             request_data = {
                 'name': f"历史 - {history.url}",
                 'method': history.method,
                 'url': path_url,
-                'params': json.loads(history.request_params) if history.request_params else {},
-                'headers': json.loads(history.request_headers) if history.request_headers else {},
-                'body': history.request_body if hasattr(history, 'request_body') else '',
-                'body_type': history.request_body_type if hasattr(history, 'request_body_type') else 'none',
+                'params': history.request.params if history.request.params else {},
+                'headers': history.request.headers if history.request.headers else {},
+                'body': history.request.body if history.request.body else '',
+                'body_type': history.request.body_type if history.request.body_type else 'none',
             }
 
             # 创建新的Tab
@@ -1447,12 +1639,24 @@ class ApiTestPage:
     def _on_clear_history(self, e):
         """清空历史记录"""
         self.history_manager.clear()
-        self.history_list.controls.clear()
-        self.history_list.update()
+        self.history_page = 1  # 重置页码
+        self.history_search_keyword = ""  # 清空搜索
+        self._update_history_list()
         snack_bar = ft.SnackBar(content=ft.Text("历史记录已清空"), duration=2000)
         self.page.overlay.append(snack_bar)
         snack_bar.open = True
         self.page.update()
+
+    def _on_history_search_change(self, e):
+        """历史记录搜索变化"""
+        self.history_search_keyword = self.history_search_input.value.strip() if hasattr(self, 'history_search_input') and self.history_search_input.value else ""
+        self.history_page = 1  # 重置到第一页
+        self._update_history_list()
+
+    def _on_request_list_search_change(self, e):
+        """请求列表搜索变化"""
+        self.request_list_search_keyword = self.request_list_search_input.value.strip() if hasattr(self, 'request_list_search_input') and self.request_list_search_input.value else ""
+        self._update_request_list_view()
 
     def _update_env_dropdown(self):
         """更新环境下拉框选项"""
