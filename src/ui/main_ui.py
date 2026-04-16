@@ -513,8 +513,8 @@ class ApiTestPage:
         # 切换可见性
         content_container.visible = not is_visible
 
-        # 更新图标（展开/折叠按钮在 Row 的 controls[0] 位置）
-        toggle_btn = self.history_section.controls[0].content.controls[1].controls[0]
+        # 更新图标（展开/折叠按钮在 Row 的 controls[1] 位置，是第2个IconButton）
+        toggle_btn = self.history_section.controls[0].content.controls[1].controls[1]
         toggle_btn.icon = ft.Icons.EXPAND_LESS if not is_visible else ft.Icons.EXPAND_MORE
 
         self.history_section.update()
@@ -528,8 +528,8 @@ class ApiTestPage:
         # 切换可见性
         content_container.visible = not is_visible
 
-        # 更新图标（展开/折叠按钮在 Row 的 controls[2] 位置）
-        toggle_btn = self.request_list_section.controls[0].content.controls[1].controls[2]
+        # 更新图标（展开/折叠按钮在 Row 的 controls[3] 位置，是第4个IconButton）
+        toggle_btn = self.request_list_section.controls[0].content.controls[1].controls[3]
         toggle_btn.icon = ft.Icons.EXPAND_LESS if not is_visible else ft.Icons.EXPAND_MORE
 
         self.request_list_section.update()
@@ -824,17 +824,6 @@ class ApiTestPage:
             auto_scroll=False,
         )
 
-        # 清空历史按钮（必须在 history_section 之前定义）
-        self.clear_history_btn = ft.Button(
-            "清空历史",
-            icon=ft.Icons.DELETE_SWEEP,
-            on_click=self._on_clear_history,
-            style=ft.ButtonStyle(
-                bgcolor=ft.Colors.GREY_200,
-                color=ft.Colors.GREY_800,
-            ),
-        )
-
         # 请求列表 - 设置最大高度
         self.request_list_view = ft.ListView(
             expand=False,
@@ -855,6 +844,12 @@ class ApiTestPage:
                             ft.Row(
                                 controls=[
                                     ft.IconButton(
+                                        icon=ft.Icons.DELETE_SWEEP,
+                                        icon_size=18,
+                                        tooltip="清空历史",
+                                        on_click=self._on_clear_history,
+                                    ),
+                                    ft.IconButton(
                                         icon=ft.Icons.EXPAND_MORE,
                                         icon_size=20,
                                         on_click=self._on_toggle_history,
@@ -874,21 +869,10 @@ class ApiTestPage:
                             ft.Container(height=5),
                             # 分页控件
                             self.history_pagination,
-                            ft.Container(height=5),
-                            ft.Row(
-                                controls=[
-                                    ft.TextButton(
-                                        "清空历史",
-                                        icon=ft.Icons.DELETE_SWEEP,
-                                        on_click=self._on_clear_history,
-                                    ),
-                                ],
-                                alignment=ft.MainAxisAlignment.END,
-                            ),
                         ],
                         spacing=0,
                     ),
-                    height=400,  # 固定高度容器（包含列表300px + 分页控件约50px + 按钮约50px）
+                    height=370,  # 固定高度容器（包含列表300px + 分页控件约50px）
                     visible=True,
                 ),
             ],
@@ -917,6 +901,12 @@ class ApiTestPage:
                                         on_click=self._on_import_from_clipboard,
                                     ),
                                     ft.IconButton(
+                                        icon=ft.Icons.DELETE_SWEEP,
+                                        icon_size=18,
+                                        tooltip="清空列表",
+                                        on_click=self._on_clear_request_list,
+                                    ),
+                                    ft.IconButton(
                                         icon=ft.Icons.EXPAND_MORE,
                                         icon_size=20,
                                         on_click=self._on_toggle_request_list,
@@ -936,21 +926,10 @@ class ApiTestPage:
                             ft.Container(height=5),
                             # 分页控件
                             self.request_list_pagination,
-                            ft.Container(height=5),
-                            ft.Row(
-                                controls=[
-                                    ft.TextButton(
-                                        "清空列表",
-                                        icon=ft.Icons.DELETE_SWEEP,
-                                        on_click=self._on_clear_request_list,
-                                    ),
-                                ],
-                                alignment=ft.MainAxisAlignment.END,
-                            ),
                         ],
                         spacing=0,
                     ),
-                    height=400,  # 固定高度容器（包含列表300px + 分页控件约50px + 按钮约50px）
+                    height=370,  # 固定高度容器（包含列表300px + 分页控件约50px）
                     visible=True,
                 ),
             ],
