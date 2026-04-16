@@ -13,6 +13,7 @@ from models import HttpRequest, HttpMethod
 from services import HttpService
 from managers import HistoryManager, EnvironmentManager, GlobalVariableManager, RequestListManager
 from .components import DynamicKeyValueList, ResponsePanel, BodyEditor, RequestRunner
+from .panels import HistoryListPanel, RequestListPanel
 
 
 class RequestTab:
@@ -503,37 +504,6 @@ class ApiTestPage:
         self.page.show_dialog(dialog)
         
         # 自动聚焦到输入框（TextField已设置autofocus=True，无需手动调用）
-    
-    def _on_toggle_history(self, e):
-        """切换历史记录区域的展开/折叠"""
-        # 获取当前可见状态
-        content_container = self.history_section.controls[1]
-        is_visible = content_container.visible
-
-        # 切换可见性
-        content_container.visible = not is_visible
-
-        # 更新图标（展开/折叠按钮在 Row 的 controls[1] 位置，是第2个IconButton）
-        toggle_btn = self.history_section.controls[0].content.controls[1].controls[1]
-        toggle_btn.icon = ft.Icons.EXPAND_LESS if not is_visible else ft.Icons.EXPAND_MORE
-
-        self.history_section.update()
-    
-    def _on_toggle_request_list(self, e):
-        """切换请求列表区域的展开/折叠"""
-        # 获取当前可见状态
-        content_container = self.request_list_section.controls[1]
-        is_visible = content_container.visible
-
-        # 切换可见性
-        content_container.visible = not is_visible
-
-        # 更新图标（展开/折叠按钮在 Row 的 controls[3] 位置，是第4个IconButton）
-        toggle_btn = self.request_list_section.controls[0].content.controls[1].controls[3]
-        toggle_btn.icon = ft.Icons.EXPAND_LESS if not is_visible else ft.Icons.EXPAND_MORE
-
-        self.request_list_section.update()
-
     def _on_url_change(self, e):
         """URL输入框内容变化时自动解析参数"""
         url = self.url_input.value.strip()
@@ -834,106 +804,21 @@ class ApiTestPage:
         )
         self._update_request_list_view()
         
-        # 历史记录区域（可展开）
-        self.history_section = ft.Column(
-            controls=[
-                ft.Container(
-                    content=ft.Row(
-                        controls=[
-                            ft.Text("历史记录", size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
-                            ft.Row(
-                                controls=[
-                                    ft.IconButton(
-                                        icon=ft.Icons.DELETE_SWEEP,
-                                        icon_size=18,
-                                        tooltip="清空历史",
-                                        on_click=self._on_clear_history,
-                                    ),
-                                    ft.IconButton(
-                                        icon=ft.Icons.EXPAND_MORE,
-                                        icon_size=20,
-                                        on_click=self._on_toggle_history,
-                                    ),
-                                ],
-                                spacing=0,
-                            ),
-                        ],
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    ),
-                    padding=ft.padding.symmetric(horizontal=8, vertical=4),
-                ),
-                ft.Container(
-                    content=ft.Column(
-                        controls=[
-                            self.history_list,
-                            ft.Container(height=5),
-                            # 分页控件
-                            self.history_pagination,
-                        ],
-                        spacing=0,
-                    ),
-                    height=370,  # 固定高度容器（包含列表300px + 分页控件约50px）
-                    visible=True,
-                ),
-            ],
-            spacing=0,
+        # 使用新的面板组件
+        self.history_section = HistoryListPanel(
+            list_view=self.history_list,
+            pagination_row=self.history_pagination,
+            on_clear=self._on_clear_history,
+            on_toggle=None,  # 面板内部已处理展开/折叠
         )
-
-        # 请求列表区域（可展开）
-        self.request_list_section = ft.Column(
-            controls=[
-                ft.Container(
-                    content=ft.Row(
-                        controls=[
-                            ft.Text("请求列表", size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_800),
-                            ft.Row(
-                                controls=[
-                                    ft.IconButton(
-                                        icon=ft.Icons.ADD,
-                                        icon_size=18,
-                                        tooltip="添加当前请求到列表",
-                                        on_click=self._on_add_to_request_list,
-                                    ),
-                                    ft.IconButton(
-                                        icon=ft.Icons.CONTENT_PASTE,
-                                        icon_size=18,
-                                        tooltip="从剪贴板导入",
-                                        on_click=self._on_import_from_clipboard,
-                                    ),
-                                    ft.IconButton(
-                                        icon=ft.Icons.DELETE_SWEEP,
-                                        icon_size=18,
-                                        tooltip="清空列表",
-                                        on_click=self._on_clear_request_list,
-                                    ),
-                                    ft.IconButton(
-                                        icon=ft.Icons.EXPAND_MORE,
-                                        icon_size=20,
-                                        on_click=self._on_toggle_request_list,
-                                    ),
-                                ],
-                                spacing=0,
-                            ),
-                        ],
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    ),
-                    padding=ft.padding.symmetric(horizontal=8, vertical=4),
-                ),
-                ft.Container(
-                    content=ft.Column(
-                        controls=[
-                            self.request_list_view,
-                            ft.Container(height=5),
-                            # 分页控件
-                            self.request_list_pagination,
-                        ],
-                        spacing=0,
-                    ),
-                    height=370,  # 固定高度容器（包含列表300px + 分页控件约50px）
-                    visible=True,
-                ),
-            ],
-            spacing=0,
+        
+        self.request_list_section = RequestListPanel(
+            list_view=self.request_list_view,
+            pagination_row=self.request_list_pagination,
+            on_add=self._on_add_to_request_list,
+            on_import=self._on_import_from_clipboard,
+            on_clear=self._on_clear_request_list,
+            on_toggle=None,  # 面板内部已处理展开/折叠
         )
 
         # 环境选择下拉框
