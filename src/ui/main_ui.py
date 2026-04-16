@@ -779,6 +779,7 @@ class ApiTestPage:
                 self._build_main_content(),
             ],
             expand=True,
+            vertical_alignment=ft.CrossAxisAlignment.START,  # 防止侧边栏垂直居中
         )
 
         self.page.add(main_row)
@@ -824,7 +825,7 @@ class ApiTestPage:
         # 环境选择下拉框
         self.env_dropdown = ft.Dropdown(
             label="环境",
-            width=220,
+            width=280,  # 调整为280px，适应更宽的侧边栏
             on_text_change=self._on_env_change,
             text_size=14,
         )
@@ -892,6 +893,8 @@ class ApiTestPage:
                     self.history_section,
                 ],
                 spacing=8,
+                scroll=ft.ScrollMode.AUTO,  # 添加自动滚动条
+                alignment=ft.MainAxisAlignment.START,  # 内容从顶部开始排列
             ),
             width=300,
             bgcolor=ft.Colors.GREY_100,
