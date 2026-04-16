@@ -255,6 +255,46 @@ class RequestListManager:
         finally:
             session.close()
 
+    def get_paged(self, page: int = 1, page_size: int = 20, keyword: str = "") -> tuple[list[RequestItem], int]:
+        """
+        分页查询请求列表（按创建时间排序）
+
+        Args:
+            page: 页码（从1开始）
+            page_size: 每页数量
+            keyword: 搜索关键词（可选，匹配 name 或 url）
+
+        Returns:
+            tuple: (请求列表, 总记录数)
+        """
+        session = self.db.get_session()
+        try:
+            # 构建查询
+            query = session.query(RequestListModel)
+            
+            # 如果有搜索关键词，添加过滤条件
+            if keyword:
+                keyword_pattern = f"%{keyword}%"
+                query = query.filter(
+                    (RequestListModel.name.like(keyword_pattern)) |
+                    (RequestListModel.url.like(keyword_pattern))
+                )
+            
+            # 获取总记录数
+            total = query.count()
+            
+            # 计算偏移量
+            offset = (page - 1) * page_size
+            
+            # 分页查询，按创建时间排序
+            models = query.order_by(
+                RequestListModel.created_at
+            ).limit(page_size).offset(offset).all()
+            
+            return [self._model_to_item(m) for m in models], total
+        finally:
+            session.close()
+
     def clear_all(self):
         """清空所有请求项"""
         session = self.db.get_session()

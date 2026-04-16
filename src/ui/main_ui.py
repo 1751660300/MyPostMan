@@ -120,12 +120,22 @@ class ApiTestPage:
 
         # 历史记录分页状态
         self.history_page = 1
-        self.history_page_size = 20
+        self.history_page_size = 10
         # 搜索过滤状态
         self.history_search_keyword = ""
         self.request_list_search_keyword = ""
+        
+        # 请求列表分页状态
+        self.request_list_page = 1
+        self.request_list_page_size = 10
 
         self.history_pagination = ft.Row(
+            controls=[],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=10,
+        )
+        
+        self.request_list_pagination = ft.Row(
             controls=[],
             alignment=ft.MainAxisAlignment.CENTER,
             spacing=10,
@@ -593,10 +603,16 @@ class ApiTestPage:
             return url
     
     def _update_request_list_view(self):
-        """更新请求 URL 列表视图"""
+        """更新请求 URL 列表视图（支持分页和搜索）"""
         self.request_list_view.controls.clear()
         
-        requests = self.request_list_manager.get_all_requests()
+        # 使用分页查询
+        requests, total = self.request_list_manager.get_paged(
+            page=self.request_list_page,
+            page_size=self.request_list_page_size,
+            keyword=self.request_list_search_keyword
+        )
+        
         for req in requests:
             # 创建列表项
             tile = ft.ListTile(
@@ -635,9 +651,12 @@ class ApiTestPage:
             )
             self.request_list_view.controls.append(tile)
         
+        # 更新分页控件
+        self._update_request_list_pagination(total)
+        
         # 更新视图
         try:
-            if self.request_list_view.page:
+            if hasattr(self.request_list_view, 'page') and self.request_list_view.page:
                 self.request_list_view.update()
         except RuntimeError:
             pass
@@ -659,6 +678,7 @@ class ApiTestPage:
             imported = self.request_list_manager.import_from_clipboard(clipboard_text)
 
             if imported:
+                self.request_list_page = 1  # 重置到第一页
                 self._update_request_list_view()
                 snack_bar = ft.SnackBar(
                     content=ft.Text(f"成功导入 {len(imported)} 个 URL"),
@@ -704,6 +724,7 @@ class ApiTestPage:
             headers=headers
         )
         
+        self.request_list_page = 1  # 重置到第一页
         self._update_request_list_view()
         snack_bar = ft.SnackBar(content=ft.Text("已添加到请求列表"), duration=2000)
         self.page.overlay.append(snack_bar)
@@ -713,6 +734,8 @@ class ApiTestPage:
     def _on_clear_request_list(self, e):
         """清空请求列表"""
         self.request_list_manager.clear_all()
+        self.request_list_page = 1  # 重置页码
+        self.request_list_search_keyword = ""  # 清空搜索
         self._update_request_list_view()
         snack_bar = ft.SnackBar(content=ft.Text("请求列表已清空"), duration=2000)
         self.page.overlay.append(snack_bar)
@@ -722,6 +745,14 @@ class ApiTestPage:
     def _on_remove_request(self, request_id: str):
         """删除请求列表项"""
         self.request_list_manager.remove_request(request_id)
+        # 如果当前页没有数据了，回到上一页
+        requests, total = self.request_list_manager.get_paged(
+            page=self.request_list_page,
+            page_size=self.request_list_page_size,
+            keyword=self.request_list_search_keyword
+        )
+        if len(requests) == 0 and self.request_list_page > 1:
+            self.request_list_page -= 1
         self._update_request_list_view()
     
     def _on_request_list_click(self, e):
@@ -902,7 +933,10 @@ class ApiTestPage:
                     content=ft.Column(
                         controls=[
                             self.request_list_view,
-                            ft.Container(height=10),
+                            ft.Container(height=5),
+                            # 分页控件
+                            self.request_list_pagination,
+                            ft.Container(height=5),
                             ft.Row(
                                 controls=[
                                     ft.TextButton(
@@ -916,7 +950,7 @@ class ApiTestPage:
                         ],
                         spacing=0,
                     ),
-                    height=350,  # 固定高度容器（包含列表300px + 按钮约50px）
+                    height=400,  # 固定高度容器（包含列表300px + 分页控件约50px + 按钮约50px）
                     visible=True,
                 ),
             ],
@@ -1556,7 +1590,11 @@ class ApiTestPage:
         """更新历史记录分页控件"""
         self.history_pagination.controls.clear()
 
-        total_pages = (total + self.history_page_size - 1) // self.history_page_size
+        # 计算总页数（至少为1）
+        if total == 0:
+            total_pages = 1
+        else:
+            total_pages = (total + self.history_page_size - 1) // self.history_page_size
 
         # 上一页按钮
         if self.history_page > 1:
@@ -1566,6 +1604,17 @@ class ApiTestPage:
                     icon_size=18,
                     tooltip="上一页",
                     on_click=lambda e: self._history_prev_page(),
+                )
+            )
+        elif total > 0:
+            # 禁用状态的上一页按钮
+            self.history_pagination.controls.append(
+                ft.IconButton(
+                    icon=ft.Icons.CHEVRON_LEFT,
+                    icon_size=18,
+                    tooltip="上一页",
+                    opacity=0.3,
+                    disabled=True,
                 )
             )
 
@@ -1579,7 +1628,7 @@ class ApiTestPage:
         )
 
         # 下一页按钮
-        if self.history_page < total_pages:
+        if self.history_page < total_pages and total > 0:
             self.history_pagination.controls.append(
                 ft.IconButton(
                     icon=ft.Icons.CHEVRON_RIGHT,
@@ -1588,9 +1637,20 @@ class ApiTestPage:
                     on_click=lambda e: self._history_next_page(),
                 )
             )
+        elif total > 0:
+            # 禁用状态的下一页按钮
+            self.history_pagination.controls.append(
+                ft.IconButton(
+                    icon=ft.Icons.CHEVRON_RIGHT,
+                    icon_size=18,
+                    tooltip="下一页",
+                    opacity=0.3,
+                    disabled=True,
+                )
+            )
 
         try:
-            if self.history_pagination.page:
+            if hasattr(self.history_pagination, 'page') and self.history_pagination.page:
                 self.history_pagination.update()
         except RuntimeError:
             pass
@@ -1652,6 +1712,87 @@ class ApiTestPage:
     def _on_request_list_search_change(self, e):
         """请求列表搜索变化"""
         self.request_list_search_keyword = self.request_list_search_input.value.strip() if hasattr(self, 'request_list_search_input') and self.request_list_search_input.value else ""
+        self.request_list_page = 1  # 重置到第一页
+        self._update_request_list_view()
+    
+    def _update_request_list_pagination(self, total: int):
+        """更新请求列表分页控件"""
+        self.request_list_pagination.controls.clear()
+
+        # 计算总页数（至少为1）
+        if total == 0:
+            total_pages = 1
+        else:
+            total_pages = (total + self.request_list_page_size - 1) // self.request_list_page_size
+
+        # 上一页按钮
+        if self.request_list_page > 1:
+            self.request_list_pagination.controls.append(
+                ft.IconButton(
+                    icon=ft.Icons.CHEVRON_LEFT,
+                    icon_size=18,
+                    tooltip="上一页",
+                    on_click=lambda e: self._request_list_prev_page(),
+                )
+            )
+        elif total > 0:
+            # 禁用状态的上一页按钮
+            self.request_list_pagination.controls.append(
+                ft.IconButton(
+                    icon=ft.Icons.CHEVRON_LEFT,
+                    icon_size=18,
+                    tooltip="上一页",
+                    opacity=0.3,
+                    disabled=True,
+                )
+            )
+
+        # 页码信息
+        self.request_list_pagination.controls.append(
+            ft.Text(
+                f"第 {self.request_list_page}/{total_pages} 页 (共 {total} 条)",
+                size=11,
+                color=ft.Colors.GREY_600,
+            )
+        )
+
+        # 下一页按钮
+        if self.request_list_page < total_pages and total > 0:
+            self.request_list_pagination.controls.append(
+                ft.IconButton(
+                    icon=ft.Icons.CHEVRON_RIGHT,
+                    icon_size=18,
+                    tooltip="下一页",
+                    on_click=lambda e: self._request_list_next_page(),
+                )
+            )
+        elif total > 0:
+            # 禁用状态的下一页按钮
+            self.request_list_pagination.controls.append(
+                ft.IconButton(
+                    icon=ft.Icons.CHEVRON_RIGHT,
+                    icon_size=18,
+                    tooltip="下一页",
+                    opacity=0.3,
+                    disabled=True,
+                )
+            )
+
+        try:
+            if hasattr(self.request_list_pagination, 'page') and self.request_list_pagination.page:
+                self.request_list_pagination.update()
+        except RuntimeError:
+            pass
+
+    def _request_list_prev_page(self):
+        """请求列表上一页"""
+        if self.request_list_page > 1:
+            self.request_list_page -= 1
+            self._update_request_list_view()
+
+    def _request_list_next_page(self):
+        """请求列表下一页"""
+        self.request_list_page += 1
         self._update_request_list_view()
 
     def _update_env_dropdown(self):
