@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from models import HttpRequest, HttpMethod
 from services import HttpService
 from managers import HistoryManager, EnvironmentManager, GlobalVariableManager, RequestListManager
-from .ui_components import DynamicKeyValueList, ResponsePanel, BodyEditor, RequestRunner
+from .components import DynamicKeyValueList, ResponsePanel, BodyEditor, RequestRunner
 
 
 class RequestTab:
@@ -492,11 +492,7 @@ class ApiTestPage:
         self.page.dialog = dialog
         self.page.show_dialog(dialog)
         
-        # 自动聚焦到输入框
-        try:
-            name_input.focus()
-        except:
-            pass
+        # 自动聚焦到输入框（TextField已设置autofocus=True，无需手动调用）
     
     def _on_toggle_history(self, e):
         """切换历史记录区域的展开/折叠"""
