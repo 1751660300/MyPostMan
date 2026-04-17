@@ -11,9 +11,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from models import HttpRequest, HttpMethod
 from services import HttpService
-from managers import HistoryManager, EnvironmentManager, GlobalVariableManager, RequestListManager
+from managers import HistoryManager, EnvironmentManager, GlobalVariableManager, RequestListManager, ExecutionPlanManager
 from .components import DynamicKeyValueList, ResponsePanel, BodyEditor, RequestRunner
-from .panels import HistoryListPanel, RequestListPanel
+from .panels import HistoryListPanel, RequestListPanel, SidebarDrawer, ExecutionPlanPanel, ExecutionMonitorPanel, ExecutionHistoryPanel
 
 
 class RequestTab:
@@ -112,6 +112,7 @@ class ApiTestPage:
         self.env_manager = EnvironmentManager()
         self.global_var_manager = GlobalVariableManager()
         self.request_list_manager = RequestListManager()
+        self.execution_plan_manager = ExecutionPlanManager()  # 执行计划管理器
         self.is_loading = False
         
         # 多Tab管理
@@ -141,6 +142,9 @@ class ApiTestPage:
             alignment=ft.MainAxisAlignment.CENTER,
             spacing=10,
         )
+        
+        # 当前页面
+        self.current_page = "home"  # home | execution_plan | settings
 
         # 设置页面属性
         self.page.title = "MyPostMan - API 测试工具"
@@ -157,6 +161,196 @@ class ApiTestPage:
 
         # 默认创建一个新Tab
         self._create_new_tab()
+    
+    def _on_page_change(self, new_page: str, old_page: str):
+        """处理页面切换"""
+        self.current_page = new_page
+        
+        # 切换页面可见性
+        if new_page == "home":
+            self.home_page.visible = True
+            self.execution_plan_page.visible = False
+            self.execution_monitor_panel.visible = False
+            # 隐藏其他面板
+            if hasattr(self, 'execution_history_panel'):
+                self.execution_history_panel.visible = False
+            if hasattr(self, 'scheduled_tasks_panel'):
+                self.scheduled_tasks_panel.visible = False
+        elif new_page == "execution_plan":
+            self.home_page.visible = False
+            self.execution_plan_page.visible = True
+            self.execution_monitor_panel.visible = False
+            # 隐藏其他面板
+            if hasattr(self, 'execution_history_panel'):
+                self.execution_history_panel.visible = False
+            if hasattr(self, 'scheduled_tasks_panel'):
+                self.scheduled_tasks_panel.visible = False
+            # 加载计划列表
+            try:
+                plans = self.execution_plan_manager.get_all_plans()
+                self.execution_plan_page.load_plans(plans)
+            except Exception as e:
+                print(f"加载执行计划失败: {e}")
+        elif new_page == "settings":
+            self.home_page.visible = False
+            self.execution_plan_page.visible = False
+            self.execution_monitor_panel.visible = False
+            # 隐藏其他面板
+            if hasattr(self, 'execution_history_panel'):
+                self.execution_history_panel.visible = False
+            if hasattr(self, 'scheduled_tasks_panel'):
+                self.scheduled_tasks_panel.visible = False
+        
+        try:
+            self.page_stack.update()
+        except RuntimeError:
+            pass
+    
+    def _on_show_execution_monitor(self, progress: float, message: str):
+        """显示执行监控面板"""
+        # 如果进度为0，说明刚开始执行，初始化监控面板
+        if progress == 0:
+            plan = self.execution_plan_page.current_executing_plan
+            if plan:
+                self.execution_monitor_panel.start_execution(plan.name, len(plan.steps))
+        
+        # 更新进度
+        self.execution_monitor_panel.update_progress(progress, message)
+        
+        # 显示监控面板
+        self.execution_monitor_panel.visible = True
+        self.execution_plan_page.visible = False
+        self.home_page.visible = False
+        
+        try:
+            self.page_stack.update()
+        except RuntimeError:
+            pass
+    
+    def _on_step_status_update(self, step_index: int, step_name: str, status: str, error: str = None, result: dict = None):
+        """步骤状态更新回调"""
+        # 调用监控面板的方法更新步骤状态
+        if hasattr(self, 'execution_monitor_panel'):
+            self.execution_monitor_panel.add_step_status(step_index, step_name, status, error, result)
+    
+    def _on_navigate_to_monitor_from_plan(self, plan):
+        """从计划列表导航到监控页面"""
+        print(f"导航到监控页面: {plan.name}")
+        # 显示监控面板
+        self.execution_monitor_panel.visible = True
+        self.execution_plan_page.visible = False
+        self.home_page.visible = False
+        
+        try:
+            self.page_stack.update()
+        except RuntimeError:
+            pass
+    
+    def _on_back_from_monitor(self):
+        """从监控面板返回执行计划列表"""
+        # 切换回执行计划页面
+        self.execution_monitor_panel.visible = False
+        self.execution_plan_page.visible = True
+        self.home_page.visible = False
+        
+        try:
+            self.page_stack.update()
+        except RuntimeError:
+            pass
+    
+    def _on_show_execution_history(self):
+        """显示执行历史面板"""
+        from ui.panels import ExecutionHistoryPanel
+        from managers.execution_plan_manager import ExecutionPlanManager
+        
+        # 创建历史面板（如果不存在）
+        if not hasattr(self, 'execution_history_panel'):
+            self.execution_history_panel = ExecutionHistoryPanel(
+                on_back=self._on_back_from_history,
+            )
+            # 添加到页面堆栈
+            self.page_stack.controls.append(self.execution_history_panel)
+        
+        # 加载执行历史数据
+        try:
+            plan_manager = ExecutionPlanManager()
+            logs = plan_manager.get_execution_logs(limit=100)  # 获取最近100条记录
+            self.execution_history_panel.load_history(logs)
+        except Exception as e:
+            print(f"加载执行历史失败: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        # 显示历史面板
+        self.execution_history_panel.visible = True
+        self.execution_plan_page.visible = False
+        self.execution_monitor_panel.visible = False
+        self.home_page.visible = False
+        
+        try:
+            self.page_stack.update()
+        except RuntimeError:
+            pass
+    
+    def _on_back_from_history(self):
+        """从历史面板返回执行计划列表"""
+        if hasattr(self, 'execution_history_panel'):
+            self.execution_history_panel.visible = False
+        
+        self.execution_plan_page.visible = True
+        self.execution_monitor_panel.visible = False
+        self.home_page.visible = False
+        
+        try:
+            self.page_stack.update()
+        except RuntimeError:
+            pass
+    
+    def _on_show_scheduled_tasks_panel(self):
+        """显示定时任务面板"""
+        from ui.panels import ScheduledTasksPanel
+        from managers.scheduler_manager import SchedulerManager
+        
+        # 创建定时任务面板（如果不存在）
+        if not hasattr(self, 'scheduled_tasks_panel'):
+            self.scheduled_tasks_panel = ScheduledTasksPanel(
+                on_back=self._on_back_from_scheduled_tasks,
+            )
+            # 添加到页面堆栈
+            self.page_stack.controls.append(self.scheduled_tasks_panel)
+        
+        # 加载定时任务数据
+        try:
+            scheduler = SchedulerManager()
+            scheduled_plans = scheduler.get_scheduled_plans()
+            self.scheduled_tasks_panel.load_tasks(scheduled_plans)
+        except Exception as e:
+            print(f"加载定时任务失败: {e}")
+        
+        # 显示定时任务面板
+        self.scheduled_tasks_panel.visible = True
+        self.execution_plan_page.visible = False
+        self.execution_monitor_panel.visible = False
+        self.home_page.visible = False
+        
+        try:
+            self.page_stack.update()
+        except RuntimeError:
+            pass
+    
+    def _on_back_from_scheduled_tasks(self):
+        """从定时任务面板返回执行计划列表"""
+        if hasattr(self, 'scheduled_tasks_panel'):
+            self.scheduled_tasks_panel.visible = False
+        
+        self.execution_plan_page.visible = True
+        self.execution_monitor_panel.visible = False
+        self.home_page.visible = False
+        
+        try:
+            self.page_stack.update()
+        except RuntimeError:
+            pass
     
     def _create_new_tab(self, request_data: dict = None):
         """创建新的请求Tab"""
@@ -771,19 +965,64 @@ class ApiTestPage:
 
     def _build_ui(self):
         """构建整个界面"""
-        # 主布局：左侧历史 + 右侧主内容
-        main_row = ft.Row(
+        # 创建侧边抽屉
+        self.sidebar_drawer = SidebarDrawer(on_page_change=self._on_page_change)
+        
+        # 创建执行监控面板
+        self.execution_monitor_panel = ExecutionMonitorPanel(on_back=self._on_back_from_monitor)
+        self.execution_monitor_panel.visible = False  # 初始隐藏
+        
+        # 创建页面容器
+        self.home_page = self._build_home_page()  # 原有的侧边栏+主内容
+        self.execution_plan_page = ExecutionPlanPanel(
+            on_show_monitor=self._on_show_execution_monitor,
+            on_show_history=self._on_show_execution_history,
+            on_show_scheduled_tasks=self._on_show_scheduled_tasks_panel,
+            on_step_status=self._on_step_status_update,  # 传递步骤状态回调
+            on_navigate_to_monitor=self._on_navigate_to_monitor_from_plan,  # 传递导航回调
+            page=self.page  # 传递page对象用于显示对话框
+        )
+        self.execution_plan_page.visible = False  # 初始隐藏
+        
+        # 页面堆叠容器
+        self.page_stack = ft.Stack(
             controls=[
-                self._build_sidebar(),
-                ft.VerticalDivider(width=1),
-                self._build_main_content(),
+                self.home_page,
+                self.execution_plan_page,
+                self.execution_monitor_panel,
             ],
             expand=True,
-            vertical_alignment=ft.CrossAxisAlignment.START,  # 防止侧边栏垂直居中
+        )
+        
+        # 主布局：左侧抽屉 + 右侧页面
+        main_row = ft.Row(
+            controls=[
+                self.sidebar_drawer,
+                ft.VerticalDivider(width=1),
+                self.page_stack,
+            ],
+            expand=True,
+            spacing=0,
         )
 
         self.page.add(main_row)
 
+    def _build_home_page(self) -> ft.Container:
+        """构建首页（原有侧边栏+主内容）"""
+        return ft.Container(
+            content=ft.Row(
+                controls=[
+                    self._build_sidebar(),
+                    ft.VerticalDivider(width=1),
+                    self._build_main_content(),
+                ],
+                expand=True,
+                vertical_alignment=ft.CrossAxisAlignment.START,
+            ),
+            expand=True,
+            visible=True,  # 默认显示首页
+        )
+    
     def _build_sidebar(self) -> ft.Container:
         """构建侧边栏（历史记录 + 环境管理 + 请求列表）"""
         # 历史记录列表 - 设置最大高度

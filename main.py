@@ -1,14 +1,49 @@
-"""MyPostMan 应用启动入口"""
+import flet_code_editor as fce
 
-import sys
-import os
+import flet as ft
 
-# 添加src目录到路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+CODE = """import flet as ft
 
-# 导入并运行应用
-from src.main import main
+def main(page: ft.Page):
+    counter = ft.Text("0", size=50, data=0)
+
+    def btn_click(e):
+        counter.data += 1
+        counter.value = str(counter.data)
+        counter.update()
+
+    page.floating_action_button = ft.FloatingActionButton(
+        icon=ft.Icons.ADD, on_click=btn_click
+    )
+    page.add(
+        ft.SafeArea(
+            ft.Container(
+                counter,
+                alignment=ft.Alignment.CENTER,
+                expand=True,
+            ),
+            expand=True,
+        ),
+    )
+
+ft.run(main)
+"""
+
+
+def main(page: ft.Page):
+    page.add(
+        ft.SafeArea(
+            expand=True,
+            content=fce.CodeEditor(
+                language=fce.CodeLanguage.PYTHON,
+                code_theme=fce.CodeTheme.ATOM_ONE_LIGHT,
+                value=CODE,
+                expand=True,
+                on_change=lambda e: print("Changed:", e.data),
+            ),
+        )
+    )
+
 
 if __name__ == "__main__":
-    import flet as ft
     ft.run(main)
