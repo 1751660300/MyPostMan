@@ -1,241 +1,280 @@
 # MyPostMan - API 测试工具
 
-一个基于 Flet 框架开发的跨平台 API 测试工具，支持桌面、Web、Android、iOS 等多平台部署。
+一个类似 Apifox/Postman 的跨平台 API 测试工具，基于 Flet 框架开发。
 
-## 功能特性
+## ✨ 特性
 
 ### 核心功能
-- **HTTP 请求支持**: GET/POST/PUT/DELETE/PATCH/HEAD/OPTIONS
-- **请求参数管理**: Headers、Query Params、Body（JSON/Text/Form）
-- **响应展示**: 状态码、响应头、响应体（JSON/HTML/XML 格式化）
-- **历史记录**: 自动保存请求历史，支持快速回放
-- **环境管理**: 支持多套环境配置，快速切换
-- **全局变量**: 跨环境共享的全局变量管理
-- **请求列表**: 常用请求 URL 管理，支持快速加载
-- **变量解析**: 支持 `{{variable_name}}` 格式的变量引用
-- **URL 自动解析**: 自动识别 URL 中的查询参数并填充到 Params
+- 🌐 **多平台支持**: 桌面、Web、Android、iOS
+- 📝 **HTTP 请求**: GET/POST/PUT/DELETE/PATCH/HEAD/OPTIONS
+- 🔧 **请求管理**: Headers、Query Params、Body（JSON/Text/Form）
+- 📊 **响应展示**: 状态码、响应头、响应体（JSON 格式化）
+- 🔖 **多Tab支持**: 同时打开多个请求，独立编辑
 
-### 技术特点
-- **跨平台**: 基于 Flet 框架，支持多平台部署
-- **数据持久化**: 使用 SQLite 数据库存储所有配置和历史记录
-- **异步请求**: 使用线程避免阻塞 UI
-- **现代化 UI**: 清晰的界面布局，直观的操作流程
-- **模块化架构**: 清晰的项目结构，易于维护和扩展
+### 高级功能
+- 📚 **历史记录**: 自动保存请求历史，支持分页和搜索
+- 🌍 **环境管理**: 多套环境配置，快速切换
+- 🔍 **搜索功能**: 历史记录和请求列表支持关键字搜索
+- 🔄 **全局变量**: 跨环境共享的变量管理
 
-## 项目结构
+### 🆕 执行计划功能
+- 📋 **执行计划**: 创建和管理多个请求的执行序列
+- ⚙️ **步骤配置**: 
+  - 参数映射（使用上一步结果、全局变量、环境变量）
+  - 自定义方法（Python代码处理响应数据）
+  - 超时和重试设置
+- ▶️ **执行监控**: 实时显示执行进度和每步详细结果
+- ⏰ **定时任务**: 支持 Cron 表达式、间隔执行、一次性执行
+- 📈 **执行历史**: 查看每次执行的详细记录和统计信息
+
+## 📁 项目结构
 
 ```
 MyPostMan/
-├── src/                          # 源代码目录
-│   ├── models/                   # 数据模型和数据库模块
-│   │   ├── __init__.py
-│   │   ├── models.py             # 数据模型定义
-│   │   └── database.py           # 数据库配置和模型
-│   ├── managers/                 # 业务逻辑管理器
-│   │   ├── __init__.py
-│   │   ├── environment_manager.py    # 环境管理器
-│   │   ├── global_variable_manager.py # 全局变量管理器
-│   │   ├── history_manager.py        # 历史记录管理器
-│   │   └── request_list_manager.py   # 请求列表管理器
-│   ├── ui/                       # 用户界面模块
-│   │   ├── __init__.py
-│   │   ├── main_ui.py            # 主界面 UI 构建
-│   │   └── ui_components.py      # 可复用 UI 组件
-│   ├── services/                 # 服务层模块
-│   │   ├── __init__.py
-│   │   └── services.py           # HTTP 请求服务
-│   ├── assets/                   # 静态资源文件
-│   └── main.py                   # 应用入口
-├── test/                         # 测试文件目录
-│   ├── __init__.py
-│   ├── README.md                 # 测试说明文档
-│   ├── test_request_list_db.py   # 请求列表数据库测试
-│   └── test_variable_resolution.py # 变量解析测试
-├── .venv/                        # 虚拟环境
-├── mypostman.db                  # SQLite 数据库文件
-├── pyproject.toml                # 项目配置
-├── README.md                     # 项目说明文档
-└── RULES.md                      # 项目开发规范
+├── src/
+│   ├── main.py                    # 应用入口
+│   ├── ui/                        # 界面模块
+│   │   ├── main_ui.py             # 主界面
+│   │   ├── dialogs/               # 对话框组件
+│   │   │   ├── step_editor_dialog.py      # 步骤编辑器
+│   │   │   ├── schedule_config_dialog.py  # 定时配置
+│   │   │   └── plan_detail_dialog.py      # 计划详情
+│   │   ├── panels/                # 面板组件
+│   │   │   ├── execution_plan_panel.py    # 执行计划列表
+│   │   │   ├── execution_monitor_panel.py # 执行监控
+│   │   │   ├── execution_history_panel.py # 执行历史
+│   │   │   └── scheduled_tasks_panel.py   # 定时任务管理
+│   │   └── components/            # 可复用组件
+│   │       ├── body_editor.py     # Body编辑器
+│   │       ├── key_value.py       # 键值对组件
+│   │       ├── request_runner.py  # 请求运行器
+│   │       └── response_panel.py  # 响应面板
+│   ├── managers/                  # 管理器
+│   │   ├── request_list_manager.py # 请求列表管理
+│   │   ├── history_manager.py     # 历史记录管理
+│   │   ├── environment_manager.py # 环境管理
+│   │   ├── global_variable_manager.py # 全局变量管理
+│   │   ├── execution_plan_manager.py  # 执行计划管理
+│   │   └── scheduler_manager.py       # 调度器管理
+│   ├── services/                  # 服务层
+│   │   ├── services.py            # HTTP请求服务
+│   │   ├── execution_engine.py    # 执行引擎
+│   │   ├── script_sandbox.py      # 脚本沙箱
+│   │   └── execution_context.py   # 执行上下文
+│   └── models/                    # 数据模型
+│       ├── models.py              # 数据模型定义
+│       ├── database.py            # 数据库操作
+│       └── execution_plan.py      # 执行计划模型
+├── .venv/                         # 虚拟环境
+├── pyproject.toml                 # 项目配置
+└── README.md                      # 项目说明
 ```
 
-## 模块说明
+## 🚀 快速开始
 
-### 数据模型层 (`models/`)
+### 1. 安装依赖
 
-#### 数据模型 (`models.py`)
-- `HttpMethod`: HTTP 请求方法枚举
-- `HttpRequest`: HTTP 请求数据模型
-- `HttpResponse`: HTTP 响应数据模型
-- `HistoryItem`: 历史记录项
-- `Environment`: 环境配置数据模型
-- `GlobalVariables`: 全局变量数据模型
-
-#### 数据库 (`database.py`)
-- `DatabaseManager`: 数据库管理器，负责连接和会话管理
-- `EnvironmentModel`: 环境配置数据库模型
-- `EnvironmentVariableModel`: 环境变量数据库模型
-- `GlobalVariableModel`: 全局变量数据库模型
-- `HistoryModel`: 历史记录数据库模型
-- `RequestListModel`: 请求列表数据库模型
-
-### 管理器层 (`managers/`)
-- `EnvironmentManager`: 环境管理器，管理多套环境配置
-- `GlobalVariableManager`: 全局变量管理器，管理跨环境变量
-- `HistoryManager`: 历史记录管理器，管理请求历史
-- `RequestListManager`: 请求列表管理器，管理常用请求 URL
-
-### 服务层 (`services/`)
-- `HttpService`: HTTP 请求服务，处理实际的 HTTP 请求
-
-### UI 层 (`ui/`)
-- `ApiTestPage`: 主界面，包含所有 UI 元素和交互逻辑
-- `DynamicKeyValueList`: 动态键值对列表组件
-- `ResponsePanel`: 响应展示面板组件
-- `BodyEditor`: Body 编辑器组件
-- `RequestRunner`: 请求运行器组件
-- `KeyValueRow`: 键值对输入行组件
-
-## 安装和运行
-
-### 环境要求
-- Python >= 3.10
-
-### 安装依赖
 ```bash
-# 使用 uv（推荐）
+# 使用 uv 安装（推荐）
 uv sync
 
 # 或使用 pip
-.venv\Scripts\python.exe -m pip install -e .
+pip install flet requests sqlalchemy pyyaml
 ```
 
-### 运行应用
+### 2. 运行应用
+
 ```bash
 # 桌面应用
 .venv\Scripts\python.exe src\main.py
 
-# 或使用 uv
-uv run flet run
-
-# Web 应用
-uv run flet run --web
+# 或激活虚拟环境后运行
+.venv\Scripts\activate
+python src\main.py
 ```
 
-## 构建应用
+## 📖 使用说明
 
-### Windows
+### 发送请求
+
+1. 在 URL 输入框中输入请求地址
+2. 选择请求方法（GET/POST/PUT/DELETE等）
+3. 在 Params/Headers/Body Tab 中配置请求参数
+4. 点击"发送"按钮
+
+### 管理请求
+
+- **添加到请求列表**: 点击请求列表的 ➕ 按钮
+- **搜索请求**: 在请求列表搜索框中输入关键字
+- **清空列表**: 点击请求列表标题旁的 🗑️ 按钮
+
+### 历史记录
+
+- 自动保存所有请求历史
+- 支持分页浏览（每页20条）
+- 支持搜索（URL、方法、状态码）
+- 点击历史记录可快速打开请求
+
+### 环境管理
+
+- 创建多套环境配置（开发/测试/生产）
+- 每个环境可定义独立变量
+- 快速切换环境
+
+### 全局变量
+
+- 在所有环境中都可用的变量
+- 支持添加、编辑、删除
+
+### 执行计划
+
+#### 创建执行计划
+1. 点击侧边栏“执行计划”
+2. 点击“新建计划”按钮
+3. 输入计划名称和描述
+4. 选择执行模式（串行/并行）
+5. 添加请求步骤
+
+#### 配置步骤
+每个步骤支持：
+- **参数映射**：使用表格配置，支持三种来源
+  - 前置步骤结果（只能选择当前步骤之前的步骤）
+  - 全局变量
+  - 环境变量（执行时动态读取当前环境）
+- **自定义方法**：编写 Python 代码处理响应数据
+  ```python
+  def process(response):
+      """处理响应"""
+      if response['status_code'] == 200:
+          data = json.loads(response['data'])
+          return {
+              'user_id': data['id'],
+              'token': data['token']
+          }
+      return {'error': '请求失败'}
+  ```
+- **超时设置**：单个步骤的超时时间
+- **重试次数**：失败时的自动重试次数
+
+#### 执行监控
+- 实时进度条显示
+- 每步执行状态（等待/执行中/成功/失败）
+- 点击步骤查看详细结果：
+  - 请求信息（方法、URL、Headers）
+  - 响应信息（状态码、耗时、响应体）
+  - 自定义方法输出
+  - 错误信息（如果有）
+
+#### 定时任务
+支持三种调度类型：
+- **Cron 表达式**：`0 9 * * *` （每天9点执行）
+- **间隔执行**：每隔 N 秒/分/时执行
+- **一次性执行**：指定时间执行一次
+
+在定时任务管理页面可以：
+- 查看所有已配置的定时任务
+- 启用/禁用定时任务
+- 删除定时任务
+- 查看下次执行时间
+
+#### 执行历史
+- 自动记录每次执行的结果
+- 显示执行状态（完成/失败/停止）
+- 统计信息：总步骤数、成功数、失败数、耗时
+- 按时间倒序排列
+
+## 🔧 开发
+
+### 运行测试
+
 ```bash
+pytest tests/
+```
+
+### 构建应用
+
+```bash
+# Windows
 flet build windows -v
-```
 
-### Web
-```bash
+# Web
 flet build web -v
-```
 
-### Android
-```bash
+# Android
 flet build apk -v
 ```
 
-### macOS
-```bash
-flet build macos -v
-```
+## 📋 依赖
 
-### iOS
-```bash
-flet build ipa -v
-```
+| 包 | 版本 | 说明 |
+|---|------|------|
+| flet | >=0.84.0 | UI框架 |
+| requests | >=2.31.0 | HTTP请求 |
+| sqlalchemy | >=2.0.0 | 数据库ORM |
+| pyyaml | >=6.0 | YAML解析 |
 
-### Linux
-```bash
-flet build linux -v
-```
+## 📝 功能详情
 
-## 使用指南
+### HTTP 请求支持
 
-### 发送 HTTP 请求
-1. 选择请求方法（GET/POST/PUT/DELETE 等）
-2. 输入请求 URL（如包含查询参数，会自动解析到 Params）
-3. 在 Tabs 中配置 Headers、Params 或 Body
-4. 点击"发送"按钮
-5. 在底部查看响应结果
+- ✅ GET/POST/PUT/DELETE/PATCH/HEAD/OPTIONS
+- ✅ 自定义请求头
+- ✅ 查询参数
+- ✅ 请求体（JSON/Text/Form）
+- ✅ SSL 证书验证控制
 
-### 环境管理
-1. 在侧边栏选择环境或点击"管理环境"
-2. 点击"添加环境"创建新环境
-3. 为环境配置变量（如 `base_url`, `token` 等）
-4. 切换环境后，请求中使用的 `{{变量名}}` 会自动解析
+### 请求参数管理
 
-### 全局变量管理
-1. 点击侧边栏的"全局变量"按钮
-2. 添加跨环境共享的变量
-3. 全局变量在所有环境中都可用
-4. 环境变量优先级高于全局变量
+- ✅ Headers 管理
+- ✅ Query Params 管理
+- ✅ Body 编辑（支持 JSON 格式化）
+- ✅ 变量替换（`{{variable}}` 格式）
 
-### 请求列表管理
-1. 在侧边栏"请求列表"区域查看常用请求
-2. 点击"+"按钮添加当前请求到列表
-3. 点击"粘贴"按钮从剪贴板批量导入 URL
-4. 点击列表项快速加载请求配置
+### 响应展示
 
-### 变量使用
-在 URL、Headers、Params、Body 中使用 `{{变量名}}` 格式：
-- URL: `{{base_url}}/api/users`
-- Header: `Authorization: Bearer {{token}}`
-- Body: `{"user": "{{username}}"}`
-
-### URL 自动解析
-- 在 URL 输入框中输入包含查询参数的 URL 时，系统会自动解析参数并填充到 Params 标签页
-- 例如：输入 `/api/users?page=1&size=10` 会自动在 Params 中添加 `page: 1` 和 `size: 10`
+- ✅ 状态码显示（带颜色标识）
+- ✅ 响应时间
+- ✅ 响应头查看
+- ✅ 响应体（JSON 格式化）
 
 ### 历史记录
-- 所有请求自动保存在侧边栏
-- 点击历史记录可快速回放
-- 支持清空历史记录
 
-## 依赖说明
+- ✅ 自动保存
+- ✅ 分页浏览
+- ✅ 关键字搜索
+- ✅ 快速回放
+- ✅ 数据持久化（SQLite）
 
-- `flet>=0.84.0`: UI 框架
-- `requests>=2.31.0`: HTTP 请求库
-- `sqlalchemy>=2.0.0`: ORM 数据库操作
-- `pyyaml>=6.0`: YAML 解析支持
+### 多Tab支持
 
-## 数据存储
+- ✅ 同时打开多个请求
+- ✅ 独立编辑
+- ✅ Tab重命名
+- ✅ 保存/关闭Tab
 
-所有数据存储在 SQLite 数据库文件 `mypostman.db` 中：
-- **环境配置**: `environments` 表
-- **环境变量**: `environment_variables` 表
-- **全局变量**: `global_variables` 表
-- **历史记录**: `history` 表
-- **请求列表**: `request_list` 表
+### 执行计划
 
-## 架构设计
+- ✅ 创建和管理执行计划
+- ✅ 串行/并行执行模式
+- ✅ 步骤间参数映射
+  - 前置步骤结果引用
+  - 全局变量引用
+  - 环境变量动态读取
+- ✅ 自定义方法处理响应
+- ✅ 超时和重试配置
+- ✅ 实时执行监控
+- ✅ 步骤详情查看
+- ✅ 定时任务调度
+  - Cron 表达式
+  - 间隔执行
+  - 一次性执行
+- ✅ 执行历史记录
+- ✅ 执行统计信息
 
-### 分层架构
-```
-┌─────────────────────────────────────┐
-│         UI Layer (ui/)              │  ← 用户界面层
-├─────────────────────────────────────┤
-│      Manager Layer (managers/)      │  ← 业务逻辑层
-├─────────────────────────────────────┤
-│      Service Layer (services/)      │  ← 服务层
-├─────────────────────────────────────┤
-│       Model Layer (models/)         │  ← 数据模型层
-└─────────────────────────────────────┘
-```
+## 🐛 问题反馈
 
-### 设计原则
-- **单一职责**: 每个模块只负责一个功能
-- **依赖倒置**: 高层模块不依赖低层模块，都依赖抽象
-- **接口隔离**: 每个模块都有清晰的接口定义
-- **开闭原则**: 对扩展开放，对修改关闭
+如有问题或建议，请提交 Issue。
 
-## 开发规范
-
-项目开发规范详见 [RULES.md](RULES.md)
-
-## 许可证
+## 📄 许可证
 
 MIT License
