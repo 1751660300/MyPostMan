@@ -176,6 +176,8 @@ class ApiTestPage:
                 self.execution_history_panel.visible = False
             if hasattr(self, 'scheduled_tasks_panel'):
                 self.scheduled_tasks_panel.visible = False
+            if hasattr(self, 'login_history_panel'):
+                self.login_history_panel.visible = False
         elif new_page == "execution_plan":
             self.home_page.visible = False
             self.execution_plan_page.visible = True
@@ -185,12 +187,24 @@ class ApiTestPage:
                 self.execution_history_panel.visible = False
             if hasattr(self, 'scheduled_tasks_panel'):
                 self.scheduled_tasks_panel.visible = False
+            if hasattr(self, 'login_history_panel'):
+                self.login_history_panel.visible = False
             # 加载计划列表
             try:
                 plans = self.execution_plan_manager.get_all_plans()
                 self.execution_plan_page.load_plans(plans)
             except Exception as e:
                 print(f"加载执行计划失败: {e}")
+        elif new_page == "login_recorder":
+            # 登录录制 - 显示对话框
+            self._show_login_recorder_dialog()
+            # 返回到之前的页面（不改变当前页面状态）
+            self.sidebar_drawer.set_active_page(old_page)
+            return
+        elif new_page == "login_history":
+            # 显示录制历史面板
+            self._on_show_login_history()
+            return
         elif new_page == "settings":
             self.home_page.visible = False
             self.execution_plan_page.visible = False
@@ -200,6 +214,8 @@ class ApiTestPage:
                 self.execution_history_panel.visible = False
             if hasattr(self, 'scheduled_tasks_panel'):
                 self.scheduled_tasks_panel.visible = False
+            if hasattr(self, 'login_history_panel'):
+                self.login_history_panel.visible = False
         
         try:
             self.page_stack.update()
@@ -346,6 +362,86 @@ class ApiTestPage:
         self.execution_plan_page.visible = True
         self.execution_monitor_panel.visible = False
         self.home_page.visible = False
+        
+        try:
+            self.page_stack.update()
+        except RuntimeError:
+            pass
+    
+    def _show_login_recorder_dialog(self):
+        """显示登录录制对话框（内部方法）"""
+        from ui.dialogs import LoginRecorderDialog
+        
+        def on_save(variable_name: str, variable_value: str, save_to_env: bool, auth_type: str):
+            """保存认证信息"""
+            try:
+                if save_to_env:
+                    # 保存到当前环境
+                    active_env = self.env_manager.get_active_environment()
+                    if active_env:
+                        active_env.variables[variable_name] = variable_value
+                        self.env_manager.save_environments()
+                        self._update_env_info()
+                        snack_msg = f"✅ 已保存到环境 '{active_env.name}'"
+                    else:
+                        snack_msg = "❌ 未选择环境"
+                else:
+                    # 保存到全局变量
+                    from managers.global_variable_manager import GlobalVariableManager
+                    global_mgr = GlobalVariableManager()
+                    global_mgr.set_variable(variable_name, variable_value)
+                    snack_msg = "✅ 已保存到全局变量"
+                
+                # 显示成功提示
+                snack_bar = ft.SnackBar(
+                    content=ft.Text(snack_msg),
+                    duration=3000,
+                    bgcolor=ft.Colors.GREEN,
+                )
+                self.page.overlay.append(snack_bar)
+                snack_bar.open = True
+                self.page.update()
+                
+            except Exception as ex:
+                print(f"保存失败: {ex}")
+                import traceback
+                traceback.print_exc()
+        
+        # 创建并显示对话框
+        dialog = LoginRecorderDialog(
+            on_save=on_save,
+            env_manager=self.env_manager,
+        )
+        dialog.show(self.page)
+    
+    def _on_show_login_recorder(self, e):
+        """显示登录录制对话框（按钮点击事件）"""
+        self._show_login_recorder_dialog()
+    
+    def _on_show_login_history(self):
+        """显示登录录制历史面板"""
+        from ui.panels import LoginHistoryPanel
+        
+        # 创建历史面板（如果不存在）
+        if not hasattr(self, 'login_history_panel'):
+            self.login_history_panel = LoginHistoryPanel()  # 不需要 on_back 参数
+            # 添加到页面堆栈
+            self.page_stack.controls.append(self.login_history_panel)
+        
+        # 每次显示时重新加载数据
+        self.login_history_panel.show(self.page)
+        
+        # 显示历史面板
+        self.login_history_panel.visible = True
+        self.home_page.visible = False
+        self.execution_plan_page.visible = False
+        self.execution_monitor_panel.visible = False
+        
+        # 隐藏其他面板
+        if hasattr(self, 'execution_history_panel'):
+            self.execution_history_panel.visible = False
+        if hasattr(self, 'scheduled_tasks_panel'):
+            self.scheduled_tasks_panel.visible = False
         
         try:
             self.page_stack.update()
@@ -1091,6 +1187,18 @@ class ApiTestPage:
                 color=ft.Colors.GREEN,
             ),
         )
+        
+        # 登录录制按钮
+        self.login_recorder_btn = ft.Button(
+            "登录录制",
+            icon=ft.Icons.VIDEOCAM,
+            on_click=self._on_show_login_recorder,
+            style=ft.ButtonStyle(
+                bgcolor=ft.Colors.PURPLE_50,
+                color=ft.Colors.PURPLE,
+            ),
+            tooltip="捕获登录后的 Token/Cookie",
+        )
 
         # 当前环境信息显示
         self.env_info_text = ft.Text(
@@ -1113,6 +1221,7 @@ class ApiTestPage:
                                     controls=[
                                         self.manage_env_btn,
                                         self.manage_global_var_btn,
+                                        self.login_recorder_btn,
                                     ],
                                     spacing=8,
                                 ),

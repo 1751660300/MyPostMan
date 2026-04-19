@@ -86,6 +86,25 @@ class RequestListModel(Base):
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 
+class RecordingHistoryModel(Base):
+    """录制历史记录数据库模型"""
+    __tablename__ = 'recording_history'
+
+    id = Column(String, primary_key=True)
+    url = Column(String, nullable=False)
+    auth_type = Column(String, default='custom')
+    variable_name = Column(String, default='')
+    value = Column(Text, default='')
+    save_location = Column(String, default='global')
+    created_at = Column(DateTime, default=datetime.now)
+    fields_count = Column(Integer, default=0)
+    has_auto_capture = Column(Boolean, default=False)
+    script_file = Column(String, default='')  # 脚本文件路径
+    actions_count = Column(Integer, default=0)
+    script_content = Column(Text, default='')  # 脚本内容（用于编辑）
+    field_configs = Column(Text, default='[]')  # 字段配置（JSON格式）
+
+
 class DatabaseManager:
     """数据库管理器"""
 
@@ -110,6 +129,15 @@ class DatabaseManager:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             
+            # 检查 recording_history 表是否需要添加 field_configs 字段
+            try:
+                cursor.execute("SELECT field_configs FROM recording_history LIMIT 1")
+            except sqlite3.OperationalError:
+                # field_configs 字段不存在，需要添加
+                cursor.execute("ALTER TABLE recording_history ADD COLUMN field_configs TEXT DEFAULT '[]'")
+                conn.commit()
+                print("✅ 数据库迁移：已添加 field_configs 字段")
+            
             # 检查request_list表是否需要迁移
             try:
                 cursor.execute("SELECT body FROM request_list LIMIT 1")
@@ -118,6 +146,7 @@ class DatabaseManager:
                 cursor.execute("ALTER TABLE request_list ADD COLUMN body TEXT DEFAULT ''")
                 cursor.execute("ALTER TABLE request_list ADD COLUMN body_type TEXT DEFAULT 'none'")
                 conn.commit()
+                print("✅ 数据库迁移：已添加 body 和 body_type 字段")
             
             conn.close()
         except Exception as e:

@@ -83,3 +83,21 @@ class Environment:
 class GlobalVariables:
     """全局变量数据模型"""
     variables: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class RecordingHistory:
+    """录制历史记录数据模型"""
+    id: str = ""  # UUID
+    url: str = ""  # 目标 URL
+    auth_type: str = "custom"  # 认证类型
+    variable_name: str = ""  # 变量名前缀
+    value: str = ""  # 值描述
+    save_location: str = "global"  # 保存位置：environment 或 global
+    created_at: str = ""  # 创建时间
+    fields_count: int = 0  # 字段数量
+    has_auto_capture: bool = False  # 是否有自动捕获
+    script_file: str = ""  # 脚本文件路径
+    actions_count: int = 0  # 操作数量
+    script_content: str = ""  # 脚本内容（用于编辑）
+    field_configs: list = None  # 字段配置列表

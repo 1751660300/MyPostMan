@@ -13,6 +13,7 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "pyyaml>=6.0",
     "apscheduler>=3.10.0",
+    "playwright>=1.40.0",  # 用于登录录制功能
 ]
 
 [dependency-groups]

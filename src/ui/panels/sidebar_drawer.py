@@ -48,6 +48,18 @@ class SidebarDrawer(ft.Container):
                 "tooltip": "批量执行请求",
             },
             {
+                "id": "login_recorder",
+                "icon": ft.Icons.VIDEOCAM,
+                "title": "登录录制",
+                "tooltip": "捕获认证信息",
+            },
+            {
+                "id": "login_history",
+                "icon": ft.Icons.HISTORY,
+                "title": "录制历史",
+                "tooltip": "查看已录制的认证信息",
+            },
+            {
                 "id": "settings",
                 "icon": ft.Icons.SETTINGS,
                 "title": "设置",
