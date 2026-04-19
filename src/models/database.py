@@ -105,6 +105,60 @@ class RecordingHistoryModel(Base):
     field_configs = Column(Text, default='[]')  # 字段配置（JSON格式）
 
 
+class ExecutionPlanModel(Base):
+    """执行计划数据库模型"""
+    __tablename__ = 'execution_plans'
+    
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, default='')
+    execution_mode = Column(String, nullable=False, default='sequential')
+    schedule_config = Column(Text, nullable=True)  # JSON格式
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # 关系
+    steps = relationship("ExecutionStepModel", back_populates="plan", cascade="all, delete-orphan")
+
+
+class ExecutionStepModel(Base):
+    """执行步骤数据库模型"""
+    __tablename__ = 'execution_steps'
+    
+    id = Column(String, primary_key=True)
+    plan_id = Column(String, ForeignKey('execution_plans.id', ondelete='CASCADE'), nullable=False)
+    request_id = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    order_index = Column(Integer, nullable=False)
+    custom_method = Column(Text, nullable=True)  # 自定义处理方法代码
+    params_mapping = Column(Text, nullable=True)  # 参数映射 JSON字符串
+    variables = Column(Text, nullable=True)  # JSON格式
+    timeout = Column(Integer, default=30)
+    retry_count = Column(Integer, default=3)
+    depends_on = Column(Text, nullable=True)  # JSON数组
+    
+    # 关系
+    plan = relationship("ExecutionPlanModel", back_populates="steps")
+
+
+class ExecutionLogModel(Base):
+    """执行日志数据库模型"""
+    __tablename__ = 'execution_logs'
+    
+    id = Column(String, primary_key=True)
+    plan_id = Column(String, ForeignKey('execution_plans.id'), nullable=False)
+    plan_name = Column(String, nullable=False)
+    started_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+    status = Column(String, nullable=False, default='pending')
+    total_steps = Column(Integer, default=0)
+    completed_steps = Column(Integer, default=0)
+    failed_steps = Column(Integer, default=0)
+    result_summary = Column(Text, nullable=True)  # JSON格式
+    error_message = Column(Text, nullable=True)
+
+
 class DatabaseManager:
     """数据库管理器"""
 

@@ -4,10 +4,8 @@ import json
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import create_engine, Column, String, Integer, Boolean, Text, DateTime, ForeignKey, inspect, text
-from sqlalchemy.orm import sessionmaker, relationship, declarative_base
-
-from models.database import DatabaseManager
+from sqlalchemy import inspect, text
+from models.database import DatabaseManager, ExecutionPlanModel, ExecutionStepModel, ExecutionLogModel
 from models.execution_plan import (
     ExecutionPlan,
     ExecutionStep,
@@ -16,63 +14,6 @@ from models.execution_plan import (
     ScheduleConfig,
     ExecutionStatus
 )
-
-Base = declarative_base()
-
-
-class ExecutionPlanModel(Base):
-    """执行计划数据库模型"""
-    __tablename__ = 'execution_plans'
-    
-    id = Column(String, primary_key=True)
-    name = Column(String, nullable=False)
-    description = Column(Text, default='')
-    execution_mode = Column(String, nullable=False, default='sequential')
-    schedule_config = Column(Text, nullable=True)  # JSON格式
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    
-    # 关系
-    steps = relationship("ExecutionStepModel", back_populates="plan", cascade="all, delete-orphan")
-
-
-class ExecutionStepModel(Base):
-    """执行步骤数据库模型"""
-    __tablename__ = 'execution_steps'
-    
-    id = Column(String, primary_key=True)
-    plan_id = Column(String, ForeignKey('execution_plans.id', ondelete='CASCADE'), nullable=False)
-    request_id = Column(String, nullable=False)
-    name = Column(String, nullable=False)
-    order_index = Column(Integer, nullable=False)
-    custom_method = Column(Text, nullable=True)  # 自定义处理方法代码
-    params_mapping = Column(Text, nullable=True)  # 参数映射 JSON字符串
-    variables = Column(Text, nullable=True)  # JSON格式
-    timeout = Column(Integer, default=30)
-    retry_count = Column(Integer, default=3)
-    depends_on = Column(Text, nullable=True)  # JSON数组
-    
-    # 关系
-    plan = relationship("ExecutionPlanModel", back_populates="steps")
-
-
-class ExecutionLogModel(Base):
-    """执行日志数据库模型"""
-    __tablename__ = 'execution_logs'
-    
-    id = Column(String, primary_key=True)
-    plan_id = Column(String, ForeignKey('execution_plans.id'), nullable=False)
-    plan_name = Column(String, nullable=False)
-    started_at = Column(DateTime, nullable=False)
-    completed_at = Column(DateTime, nullable=True)
-    status = Column(String, nullable=False, default='pending')
-    total_steps = Column(Integer, default=0)
-    completed_steps = Column(Integer, default=0)
-    failed_steps = Column(Integer, default=0)
-    result_summary = Column(Text, nullable=True)  # JSON格式
-    error_message = Column(Text, nullable=True)
-
 
 class ExecutionPlanManager:
     """执行计划管理器"""
@@ -84,24 +25,18 @@ class ExecutionPlanManager:
         Args:
             db_path: 数据库路径，如果为None则使用默认路径
         """
-        if db_path is None:
-            import os
-            db_path = os.path.join(os.path.dirname(__file__), '..', 'mypostman.db')
+        # 使用统一的 DatabaseManager
+        self.db_manager = DatabaseManager()
         
-        self.db_path = db_path
-        self.engine = create_engine(f'sqlite:///{db_path}')
-        Base.metadata.create_all(self.engine)
-        self.Session = sessionmaker(bind=self.engine)
-        
-        # 执行数据库迁移（必须在 Session 创建之后）
+        # 执行数据库迁移
         self._migrate_database()
     
     def _migrate_database(self):
         """数据库迁移：添加新字段，删除旧字段"""
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             # 检查是否需要迁移
-            columns = [col['name'] for col in inspect(self.engine).get_columns('execution_steps')]
+            columns = [col['name'] for col in inspect(self.db_manager.engine).get_columns('execution_steps')]
             
             needs_migration = False
             if 'custom_method' not in columns or 'params_mapping' not in columns or 'script' in columns:
@@ -221,7 +156,7 @@ class ExecutionPlanManager:
             updated_at=now,
         )
         
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             session.add(plan_model)
             session.commit()
@@ -251,7 +186,7 @@ class ExecutionPlanManager:
         Returns:
             Optional[ExecutionPlan]: 更新后的计划，如果不存在则返回None
         """
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             plan_model = session.query(ExecutionPlanModel).filter_by(id=plan_id).first()
             if not plan_model:
@@ -288,7 +223,7 @@ class ExecutionPlanManager:
         Returns:
             bool: 是否删除成功
         """
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             plan_model = session.query(ExecutionPlanModel).filter_by(id=plan_id).first()
             if not plan_model:
@@ -313,7 +248,7 @@ class ExecutionPlanManager:
         Returns:
             Optional[ExecutionPlan]: 执行计划，如果不存在则返回None
         """
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             plan_model = session.query(ExecutionPlanModel).filter_by(id=plan_id).first()
             if not plan_model:
@@ -333,7 +268,7 @@ class ExecutionPlanManager:
         Returns:
             list[ExecutionPlan]: 执行计划列表
         """
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             query = session.query(ExecutionPlanModel)
             if active_only:
@@ -368,7 +303,7 @@ class ExecutionPlanManager:
         Returns:
             Optional[ExecutionStep]: 添加的步骤，如果计划不存在则返回None
         """
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             plan_model = session.query(ExecutionPlanModel).filter_by(id=plan_id).first()
             if not plan_model:
@@ -418,7 +353,7 @@ class ExecutionPlanManager:
         Returns:
             bool: 是否移除成功
         """
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             step_model = session.query(ExecutionStepModel).filter_by(id=step_id).first()
             if not step_model:
@@ -466,7 +401,7 @@ class ExecutionPlanManager:
         Returns:
             Optional[ExecutionStep]: 更新后的步骤，如果不存在则返回None
         """
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             step_model = session.query(ExecutionStepModel).filter_by(id=step_id).first()
             if not step_model:
@@ -525,7 +460,7 @@ class ExecutionPlanManager:
         Returns:
             bool: 是否重排序成功
         """
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             for i, step_id in enumerate(step_ids):
                 step_model = session.query(ExecutionStepModel).filter_by(id=step_id, plan_id=plan_id).first()
@@ -556,73 +491,7 @@ class ExecutionPlanManager:
         Returns:
             bool: 是否移动成功
         """
-        session = self.Session()
-        try:
-            # 获取当前步骤
-            step_model = session.query(ExecutionStepModel).filter_by(id=step_id).first()
-            if not step_model:
-                return False
-            
-            plan_id = step_model.plan_id
-            current_order = step_model.order_index
-            
-            # 查找相邻步骤
-            if direction == 'up':
-                # 查找上一个步骤
-                prev_step = session.query(ExecutionStepModel).filter(
-                    ExecutionStepModel.plan_id == plan_id,
-                    ExecutionStepModel.order_index == current_order - 1
-                ).first()
-                
-                if prev_step:
-                    # 交换 order_index
-                    prev_step.order_index = current_order
-                    step_model.order_index = current_order - 1
-                else:
-                    return False  # 已经是第一个，不能上移
-                    
-            elif direction == 'down':
-                # 查找下一个步骤
-                next_step = session.query(ExecutionStepModel).filter(
-                    ExecutionStepModel.plan_id == plan_id,
-                    ExecutionStepModel.order_index == current_order + 1
-                ).first()
-                
-                if next_step:
-                    # 交换 order_index
-                    next_step.order_index = current_order
-                    step_model.order_index = current_order + 1
-                else:
-                    return False  # 已经是最后一个，不能下移
-            else:
-                return False  # 无效的方向
-            
-            # 更新计划的更新时间
-            plan_model = session.query(ExecutionPlanModel).filter_by(id=plan_id).first()
-            if plan_model:
-                plan_model.updated_at = datetime.now()
-            
-            session.commit()
-            return True
-            
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.close()
-    
-    def move_step(self, step_id: str, direction: str) -> bool:
-        """
-        移动步骤（上移或下移）
-        
-        Args:
-            step_id: 步骤ID
-            direction: 方向 ('up' 或 'down')
-            
-        Returns:
-            bool: 是否移动成功
-        """
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             # 获取当前步骤
             step_model = session.query(ExecutionStepModel).filter_by(id=step_id).first()
@@ -687,7 +556,7 @@ class ExecutionPlanManager:
         Returns:
             str: 日志ID
         """
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             log_model = ExecutionLogModel(
                 id=log.id,
@@ -724,7 +593,7 @@ class ExecutionPlanManager:
         Returns:
             Optional[ExecutionLog]: 更新后的日志
         """
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             log_model = session.query(ExecutionLogModel).filter_by(id=log_id).first()
             if not log_model:
@@ -765,7 +634,7 @@ class ExecutionPlanManager:
         Returns:
             list[ExecutionLog]: 执行日志列表
         """
-        session = self.Session()
+        session = self.db_manager.get_session()
         try:
             query = session.query(ExecutionLogModel)
             if plan_id:
