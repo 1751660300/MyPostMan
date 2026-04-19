@@ -2,18 +2,13 @@
 
 import flet as ft
 import threading
-import sys
-import os
 import uuid
-
-# 添加src目录到路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from models import HttpRequest, HttpMethod
 from services import HttpService
 from managers import HistoryManager, EnvironmentManager, GlobalVariableManager, RequestListManager, ExecutionPlanManager
 from .components import DynamicKeyValueList, ResponsePanel, BodyEditor, RequestRunner
-from .panels import HistoryListPanel, RequestListPanel, SidebarDrawer, ExecutionPlanPanel, ExecutionMonitorPanel, ExecutionHistoryPanel
+from .panels import HistoryListPanel, RequestListPanel, SidebarDrawer, ExecutionPlanPanel, ExecutionMonitorPanel
 
 
 class RequestTab:
