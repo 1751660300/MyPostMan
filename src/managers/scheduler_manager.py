@@ -1,14 +1,12 @@
 """定时调度管理器 - 管理执行计划的定时任务"""
 
-import json
-from datetime import datetime
 from typing import Optional, Callable
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.date import DateTrigger
 
-from models.execution_plan import ExecutionPlan, ScheduleConfig, ScheduleType
+from models.execution_plan import ScheduleConfig, ScheduleType
 from managers.execution_plan_manager import ExecutionPlanManager
 
 

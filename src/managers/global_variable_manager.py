@@ -1,14 +1,7 @@
 """全局变量管理模块 - 管理跨环境的全局变量"""
 
 import uuid
-import sys
-import os
 from datetime import datetime
-from typing import Optional
-
-# 添加src目录到路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from models import GlobalVariables
 from models.database import DatabaseManager, GlobalVariableModel
 
 

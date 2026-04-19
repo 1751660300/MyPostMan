@@ -6,11 +6,6 @@ import yaml
 import uuid
 from typing import Optional
 from datetime import datetime
-from urllib.parse import urlparse, parse_qs
-import sys
-
-# 添加src目录到路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from models.database import DatabaseManager, RequestListModel
 
 
@@ -35,9 +30,7 @@ class RequestListManager:
 
     def __init__(self, db_path: str = None):
         # 数据库路径默认为与模块同目录下的 mypostman.db
-        if db_path is None:
-            db_path = os.path.join(os.path.dirname(__file__), "mypostman.db")
-        self.db = DatabaseManager(db_path)
+        self.db = DatabaseManager()
         # 迁移旧数据（如果存在）
         self._migrate_from_json()
 

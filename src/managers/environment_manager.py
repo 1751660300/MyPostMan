@@ -1,12 +1,7 @@
 """环境管理模块 - 管理多套环境配置"""
 
 import uuid
-import sys
-import os
 from typing import Optional
-
-# 添加src目录到路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from models import Environment
 from models.database import DatabaseManager, EnvironmentModel, EnvironmentVariableModel
 
