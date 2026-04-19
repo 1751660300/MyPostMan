@@ -2167,7 +2167,7 @@ class ApiTestPage:
                                     ft.Button(
                                         "删除",
                                         icon=ft.Icons.DELETE,
-                                        on_click=lambda ev, env_id=env.id: self._delete_environment(env_id),
+                                        on_click=lambda ev, env_id=env.id: self._delete_environment(env_id, refresh_env_list),
                                         style=ft.ButtonStyle(
                                             bgcolor=ft.Colors.RED_50,
                                             color=ft.Colors.RED,
@@ -2186,6 +2186,13 @@ class ApiTestPage:
                     on_click=lambda ev, env_id=env.id: self._activate_environment(env_id),
                 )
                 env_list_view.controls.append(card)
+            # 只有在控件已添加到页面时才调用 update
+            try:
+                if env_list_view.page:
+                    env_list_view.update()
+            except RuntimeError:
+                # 控件还未添加到页面，忽略此错误
+                pass
 
         refresh_env_list()
 
@@ -2547,9 +2554,13 @@ class ApiTestPage:
 
         def delete_env(e):
             if self.env_manager.delete_environment(env_id):
+                # 先关闭对话框
+                self._close_dialog()
+                # 刷新下拉框和环境信息
                 self._update_env_dropdown()
                 self._update_env_info()
-                self._close_dialog()
+                # 刷新整个页面
+                self.page.update()
                 snack_bar = ft.SnackBar(content=ft.Text("环境已删除"), duration=2000)
                 self.page.overlay.append(snack_bar)
                 snack_bar.open = True
@@ -2620,13 +2631,24 @@ class ApiTestPage:
         snack_bar.open = True
         self.page.update()
 
-    def _delete_environment(self, env_id):
-        """删除环境"""
+    def _delete_environment(self, env_id, refresh_callback=None):
+        """删除环境
+        
+        Args:
+            env_id: 环境ID
+            refresh_callback: 可选的刷新回调函数（用于刷新环境列表）
+        """
         env = self.env_manager.get_environment(env_id)
         if env:
             if self.env_manager.delete_environment(env_id):
+                # 如果有刷新回调，先调用它刷新列表
+                if refresh_callback:
+                    refresh_callback()
+                # 刷新下拉框和环境信息
                 self._update_env_dropdown()
                 self._update_env_info()
+                # 刷新整个页面
+                self.page.update()
                 snack_bar = ft.SnackBar(content=ft.Text(f"环境 '{env.name}' 已删除"), duration=2000)
                 self.page.overlay.append(snack_bar)
                 snack_bar.open = True
