@@ -2318,13 +2318,17 @@ class ApiTestPage:
                 self.page.update()
                 return
 
-            # 收集变量
+            # 收集变量 - 只从 variables_area.controls 中收集（确保已删除的行不会被收集）
             variables = {}
-            for _, key_field, value_field in rows:
-                key = key_field.value.strip()
-                value = value_field.value.strip()
-                if key:
-                    variables[key] = value
+            for control in variables_area.controls:
+                if isinstance(control, ft.Row) and len(control.controls) >= 2:
+                    key_field = control.controls[0]
+                    value_field = control.controls[1]
+                    if hasattr(key_field, 'value') and hasattr(value_field, 'value'):
+                        key = key_field.value.strip()
+                        value = value_field.value.strip()
+                        if key:
+                            variables[key] = value
 
             # 验证 base_url 是否存在
             if 'base_url' not in variables:
@@ -2494,13 +2498,17 @@ class ApiTestPage:
                 self.page.update()
                 return
 
-            # 收集变量
+            # 收集变量 - 只从 variables_area.controls 中收集（确保已删除的行不会被收集）
             variables = {}
-            for _, key_field, value_field in rows:
-                key = key_field.value.strip()
-                value = value_field.value.strip()
-                if key:
-                    variables[key] = value
+            for control in variables_area.controls:
+                if isinstance(control, ft.Row) and len(control.controls) >= 2:
+                    key_field = control.controls[0]
+                    value_field = control.controls[1]
+                    if hasattr(key_field, 'value') and hasattr(value_field, 'value'):
+                        key = key_field.value.strip()
+                        value = value_field.value.strip()
+                        if key:
+                            variables[key] = value
 
             # 验证 base_url 是否存在
             if 'base_url' not in variables:
@@ -2700,13 +2708,17 @@ class ApiTestPage:
         add_var_btn = ft.TextButton("添加变量", icon=ft.Icons.ADD, on_click=lambda e: rows.append(add_variable_row()))
 
         def save_global_vars(e):
-            # 收集变量
+            # 收集变量 - 只从 variables_area.controls 中收集（确保已删除的行不会被收集）
             variables = {}
-            for _, key_field, value_field in rows:
-                key = key_field.value.strip()
-                value = value_field.value.strip()
-                if key:
-                    variables[key] = value
+            for control in variables_area.controls:
+                if isinstance(control, ft.Row) and len(control.controls) >= 2:
+                    key_field = control.controls[0]
+                    value_field = control.controls[1]
+                    if hasattr(key_field, 'value') and hasattr(value_field, 'value'):
+                        key = key_field.value.strip()
+                        value = value_field.value.strip()
+                        if key:
+                            variables[key] = value
 
             # 保存全局变量
             self.global_var_manager.set_variables(variables)
