@@ -9,6 +9,7 @@ from ui.panels.execution_monitor_panel import ExecutionMonitorPanel
 from ui.panels.execution_history_panel import ExecutionHistoryPanel
 from ui.panels.scheduled_tasks_panel import ScheduledTasksPanel
 from ui.panels.login_history_panel import LoginHistoryPanel
+from ui.panels.settings_panel import SettingsPanel
 
 __all__ = [
     'CollapsibleListPanel',
@@ -20,4 +21,5 @@ __all__ = [
     'ExecutionHistoryPanel',
     'ScheduledTasksPanel',
     'LoginHistoryPanel',
+    'SettingsPanel',
 ]

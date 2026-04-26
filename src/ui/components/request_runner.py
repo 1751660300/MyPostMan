@@ -37,68 +37,6 @@ class RequestRunner(ft.Container):
         self.concurrency_count_row.delete_btn.visible = False
         self.concurrency_count_row.enabled_checkbox.visible = False
 
-        # HTTPS 行（使用独立布局）
-        self.https_key_input = ft.TextField(
-            value="启用 HTTPS",
-            read_only=True,
-            bgcolor=ft.Colors.GREY_100,
-            width=150,
-            text_size=13,
-            height=36,
-            dense=True,
-        )
-        self.https_dropdown = ft.Dropdown(
-            options=[
-                ft.dropdown.Option("是", "是"),
-                ft.dropdown.Option("否", "否"),
-            ],
-            value="是",
-            expand=2,
-            text_size=13,
-            height=36,
-            dense=True,
-        )
-        self.https_desc_input = ft.TextField(
-            value="是否使用 HTTPS 协议",
-            read_only=True,
-            bgcolor=ft.Colors.GREY_100,
-            expand=1,
-            text_size=13,
-            height=36,
-            dense=True,
-        )
-
-        # SSL 认证行（使用独立布局）
-        self.ssl_key_input = ft.TextField(
-            value="SSL 认证",
-            read_only=True,
-            bgcolor=ft.Colors.GREY_100,
-            width=150,
-            text_size=13,
-            height=36,
-            dense=True,
-        )
-        self.ssl_dropdown = ft.Dropdown(
-            options=[
-                ft.dropdown.Option("认证", "认证"),
-                ft.dropdown.Option("不认证", "不认证"),
-            ],
-            value="不认证",
-            expand=2,
-            text_size=13,
-            height=36,
-            dense=True,
-        )
-        self.ssl_desc_input = ft.TextField(
-            value="是否验证 SSL 证书",
-            read_only=True,
-            bgcolor=ft.Colors.GREY_100,
-            expand=1,
-            text_size=13,
-            height=36,
-            dense=True,
-        )
-
         # 进度条
         self.progress_bar = ft.ProgressBar(
             value=0,
@@ -130,46 +68,6 @@ class RequestRunner(ft.Container):
                         controls=[
                             self.request_count_row,
                             self.concurrency_count_row,
-                            # HTTPS 行
-                            ft.Container(
-                                content=ft.Row(
-                                    controls=[
-                                        ft.Container(
-                                            content=self.https_key_input,
-                                            width=150,
-                                        ),
-                                        self.https_dropdown,
-                                        ft.Container(
-                                            content=self.https_desc_input,
-                                            expand=1,
-                                        ),
-                                    ],
-                                    spacing=8,
-                                    alignment=ft.MainAxisAlignment.START,
-                                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                                ),
-                                padding=ft.padding.symmetric(vertical=2, horizontal=4),
-                            ),
-                            # SSL 认证行
-                            ft.Container(
-                                content=ft.Row(
-                                    controls=[
-                                        ft.Container(
-                                            content=self.ssl_key_input,
-                                            width=150,
-                                        ),
-                                        self.ssl_dropdown,
-                                        ft.Container(
-                                            content=self.ssl_desc_input,
-                                            expand=1,
-                                        ),
-                                    ],
-                                    spacing=8,
-                                    alignment=ft.MainAxisAlignment.START,
-                                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                                ),
-                                padding=ft.padding.symmetric(vertical=2, horizontal=4),
-                            ),
                         ],
                         spacing=0,
                     ),
@@ -182,14 +80,6 @@ class RequestRunner(ft.Container):
             ],
             spacing=0,
         )
-
-    def is_https(self) -> bool:
-        """是否启用 HTTPS"""
-        return self.https_dropdown.value == "是"
-
-    def is_ssl_verify(self) -> bool:
-        """是否验证 SSL 证书"""
-        return self.ssl_dropdown.value == "认证"
 
     def get_request_count(self) -> int:
         """获取请求次数"""

@@ -7,8 +7,9 @@ import uuid
 from models import HttpRequest, HttpMethod
 from services import HttpService
 from managers import HistoryManager, EnvironmentManager, GlobalVariableManager, RequestListManager, ExecutionPlanManager
+from managers.settings_manager import SettingsManager
 from .components import DynamicKeyValueList, ResponsePanel, BodyEditor, RequestRunner
-from .panels import HistoryListPanel, RequestListPanel, SidebarDrawer, ExecutionPlanPanel, ExecutionMonitorPanel
+from .panels import HistoryListPanel, RequestListPanel, SidebarDrawer, ExecutionPlanPanel, ExecutionMonitorPanel, SettingsPanel
 
 
 class RequestTab:
@@ -48,7 +49,7 @@ class RequestTab:
         # 默认请求头
         default_headers = {
             "Accept": "application/json, text/plain, */*",
-            "User-Agent": "MyPostMan/1.0",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
         }
         self.headers_list = DynamicKeyValueList(default_data=default_headers)
         self.params_list = DynamicKeyValueList()
@@ -108,6 +109,7 @@ class ApiTestPage:
         self.global_var_manager = GlobalVariableManager()
         self.request_list_manager = RequestListManager()
         self.execution_plan_manager = ExecutionPlanManager()  # 执行计划管理器
+        self.settings_manager = SettingsManager()  # 设置管理器
         self.is_loading = False
         
         # 多Tab管理
@@ -173,6 +175,8 @@ class ApiTestPage:
                 self.scheduled_tasks_panel.visible = False
             if hasattr(self, 'login_history_panel'):
                 self.login_history_panel.visible = False
+            if hasattr(self, 'settings_panel'):
+                self.settings_panel.visible = False
         elif new_page == "execution_plan":
             self.home_page.visible = False
             self.execution_plan_page.visible = True
@@ -184,6 +188,8 @@ class ApiTestPage:
                 self.scheduled_tasks_panel.visible = False
             if hasattr(self, 'login_history_panel'):
                 self.login_history_panel.visible = False
+            if hasattr(self, 'settings_panel'):
+                self.settings_panel.visible = False
             # 加载计划列表
             try:
                 plans = self.execution_plan_manager.get_all_plans()
@@ -211,6 +217,10 @@ class ApiTestPage:
                 self.scheduled_tasks_panel.visible = False
             if hasattr(self, 'login_history_panel'):
                 self.login_history_panel.visible = False
+            
+            # 显示设置页面
+            if hasattr(self, 'settings_panel'):
+                self.settings_panel.visible = True
         
         try:
             self.page_stack.update()
@@ -357,6 +367,23 @@ class ApiTestPage:
         self.execution_plan_page.visible = True
         self.execution_monitor_panel.visible = False
         self.home_page.visible = False
+        
+        try:
+            self.page_stack.update()
+        except RuntimeError:
+            pass
+    
+    def _on_back_from_settings(self):
+        """从设置面板返回首页"""
+        if hasattr(self, 'settings_panel'):
+            self.settings_panel.visible = False
+        
+        self.home_page.visible = True
+        self.execution_plan_page.visible = False
+        self.execution_monitor_panel.visible = False
+        
+        # 切换侧边栏到首页
+        self.sidebar_drawer.set_active_page("home")
         
         try:
             self.page_stack.update()
@@ -1079,12 +1106,17 @@ class ApiTestPage:
         )
         self.execution_plan_page.visible = False  # 初始隐藏
         
+        # 创建设置页面
+        self.settings_panel = SettingsPanel(on_back=self._on_back_from_settings)
+        self.settings_panel.visible = False  # 初始隐藏
+        
         # 页面堆叠容器
         self.page_stack = ft.Stack(
             controls=[
                 self.home_page,
                 self.execution_plan_page,
                 self.execution_monitor_panel,
+                self.settings_panel,
             ],
             expand=True,
         )
@@ -1298,7 +1330,7 @@ class ApiTestPage:
         # Headers和Params列表
         default_headers = {
             "Accept": "application/json, text/plain, */*",
-            "User-Agent": "MyPostMan/1.0",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
         }
         self.headers_list = DynamicKeyValueList(default_data=default_headers)
         self.params_list = DynamicKeyValueList()
@@ -1413,55 +1445,8 @@ class ApiTestPage:
             self.page.update()
             return
 
-        # 检查 SSL 配置，如果不验证则弹框提示
-        if not self.request_runner.is_ssl_verify():
-            self._show_ssl_warning_dialog(url)
-            return
-
-        # 直接发送请求（SSL 验证开启）
+        # 直接发送请求（SSL 验证状态从设置中读取）
         self._do_send_request(url)
-    
-    def _show_ssl_warning_dialog(self, url: str):
-        """显示 SSL 警告对话框"""
-        def on_confirm(e):
-            """确认继续发送请求"""
-            self.page.pop_dialog()
-            self._do_send_request(url)
-        
-        def on_cancel(e):
-            """取消发送请求"""
-            self.page.pop_dialog()
-        
-        dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("⚠️ SSL 证书验证已关闭"),
-            content=ft.Text(
-                '当前 Runner 配置中 SSL 认证设置为"不认证"。\n\n'
-                "这意味着请求将不会验证服务器的 SSL 证书，可能存在安全风险。\n\n"
-                "建议：\n"
-                "• 生产环境：请开启 SSL 认证\n"
-                "• 测试环境/自签名证书：可以继续使用\n\n"
-                "是否继续发送请求？",
-                size=14,
-            ),
-            actions=[
-                ft.TextButton(
-                    "取消",
-                    on_click=on_cancel,
-                ),
-                ft.TextButton(
-                    "继续发送",
-                    on_click=on_confirm,
-                    style=ft.ButtonStyle(
-                        color=ft.Colors.ORANGE,
-                    ),
-                ),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-        
-        self.page.dialog = dialog
-        self.page.show_dialog(dialog)
     
     def _do_send_request(self, url: str):
         """执行发送请求的逻辑"""
@@ -1574,8 +1559,8 @@ class ApiTestPage:
                 body_type=body_type,
             )
 
-            # 发送请求（使用 Runner 中的 SSL 设置）
-            verify_ssl = self.request_runner.is_ssl_verify()
+            # 发送请求（从设置管理器读取 SSL 验证状态）
+            verify_ssl = self.settings_manager.get_ssl_verify_enabled()
             response = self.http_service.send_request(request, verify_ssl=verify_ssl)
 
             # 添加到历史记录
@@ -1612,8 +1597,8 @@ class ApiTestPage:
                 body_type=body_type,
             )
 
-            # 发送请求（使用 Runner 中的 SSL 设置）
-            verify_ssl = self.request_runner.is_ssl_verify()
+            # 发送请求（从设置管理器读取 SSL 验证状态）
+            verify_ssl = self.settings_manager.get_ssl_verify_enabled()
             response = self.http_service.send_request(request, verify_ssl=verify_ssl)
 
             # 添加到历史记录
