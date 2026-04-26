@@ -104,7 +104,7 @@ class DynamicKeyValueList(ft.Container):
 
         # 添加行按钮
         self.add_row_btn = ft.TextButton(
-            "+ 添加参数",
+            "添加参数",
             icon=ft.Icons.ADD,
             on_click=lambda e: self._add_row(),
         )
