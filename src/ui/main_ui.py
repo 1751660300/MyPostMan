@@ -707,7 +707,7 @@ class ApiTestPage:
     
     def _on_tab_url_change(self, e):
         """当前Tab的URL变化时标记为已修改并同步数据"""
-        if self.current_tab_index >= 0 and self.current_tab_index < len(self.request_tabs):
+        if 0 <= self.current_tab_index < len(self.request_tabs):
             # 同步数据到Tab对象
             self._sync_ui_to_current_tab()
             self._update_tab_bar()
@@ -717,7 +717,7 @@ class ApiTestPage:
 
     def _on_tab_method_change(self, e):
         """当前Tab的方法变化时标记为已修改并同步数据"""
-        if self.current_tab_index >= 0 and self.current_tab_index < len(self.request_tabs):
+        if 0 <= self.current_tab_index < len(self.request_tabs):
             # 同步数据到Tab对象
             self._sync_ui_to_current_tab()
             self._update_tab_bar()
@@ -790,8 +790,12 @@ class ApiTestPage:
         
         # 自动聚焦到输入框（TextField已设置autofocus=True，无需手动调用）
     def _on_url_change(self, e):
-        """URL输入框内容变化时自动解析参数"""
+        """URL输入框内容变化时自动解析参数和更新前缀"""
         url = self.url_input.value.strip()
+        
+        # 动态更新 URL 前缀（根据是否包含 http/https 决定显示与否）
+        self._update_url_prefix()
+        
         if not url:
             return
         
@@ -2080,45 +2084,28 @@ class ApiTestPage:
         return full_url
 
     def _update_url_prefix(self):
-        """根据环境的 base_url 更新 URL 前缀"""
-        active_env = self.env_manager.get_active_environment()
-
-        if active_env and 'base_url' in active_env.variables:
-            base_url = active_env.variables['base_url']
-            # 解析 base_url，提取协议和域名部分
-            # 例如: http://localhost:8080/api -> http://localhost:8080
-            if base_url.startswith('http://'):
-                base_url = base_url[7:]
-            elif base_url.startswith('https://'):
-                base_url = base_url[8:]
-
-            # 找到第一个斜杠，前面的是协议+域名
-            slash_pos = base_url.find('/')
-            if slash_pos > 0:
-                domain = base_url[:slash_pos]
-                self.url_input.prefix = domain + '/'
-            else:
-                self.url_input.prefix = base_url + '/'
-        else:
-            # 没有环境或没有 base_url，使用默认前缀
-            self.url_input.prefix = ""
-
-        # 更新 URL 值（移除已有的前缀部分）
+        """根据 URL 输入内容动态更新 URL 前缀"""
         current_url = self.url_input.value or ""
-        if current_url.startswith('http://') or current_url.startswith('https://'):
-            # 移除完整的 URL 前缀
-            if current_url.startswith('http://'):
-                current_url = current_url[7:]
+        
+        # 如果用户输入的是完整 URL（包含 http:// 或 https://），则不显示前缀
+        if current_url.startswith('http://') or current_url.startswith('https://') or current_url == "":
+            self.url_input.prefix = None
+        else:
+            if current_url.startswith('/'):
+                self.url_input.value = current_url[1:]
+            # 否则显示环境的 base_url 前缀
+            active_env = self.env_manager.get_active_environment()
+            
+            if active_env and 'base_url' in active_env.variables:
+                base_url = active_env.variables['base_url']
+                # 解析 base_url，提取协议和域名部分
+                # 例如: http://localhost:8080/api -> http://localhost:8080
+                if not base_url.endswith('/'):
+                    base_url = base_url + '/'
+                self.url_input.prefix = base_url
             else:
-                current_url = current_url[8:]
-
-            # 找到域名部分并移除
-            slash_pos = current_url.find('/')
-            if slash_pos > 0:
-                current_url = current_url[slash_pos + 1:]
-
-            self.url_input.value = current_url
-
+                # 没有环境或没有 base_url，不显示前缀
+                self.url_input.prefix = None
         # 只有在控件已添加到页面时才调用 update
         try:
             if self.url_input.page:
