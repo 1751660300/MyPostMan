@@ -159,13 +159,24 @@ class ExecutionLogModel(Base):
     error_message = Column(Text, nullable=True)
 
 
+class SettingsModel(Base):
+    """系统设置数据库模型"""
+    __tablename__ = 'settings'
+    
+    id = Column(String, primary_key=True)
+    key = Column(String, nullable=False, unique=True)
+    value = Column(Text, default='')
+    description = Column(Text, default='')
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+
 class DatabaseManager:
     """数据库管理器"""
 
     def __init__(self, db_path: str = 'mypostman.db'):
         # 如果db_path不是绝对路径，则相对于src目录
         if not os.path.isabs(db_path):
-            db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), db_path)
+            db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), db_path)
         self.engine = create_engine(f'sqlite:///{db_path}', echo=False)
         self.Session = sessionmaker(bind=self.engine)
         self._create_tables()
