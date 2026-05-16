@@ -59,7 +59,7 @@ class RequestRunner(ft.Container):
                         ],
                         spacing=8,
                     ),
-                    padding=ft.padding.symmetric(vertical=6, horizontal=4),
+                    padding=ft.Padding(left=4, top=6, right=4, bottom=6),
                     bgcolor=ft.Colors.GREY_200,
                 ),
                 # 参数行

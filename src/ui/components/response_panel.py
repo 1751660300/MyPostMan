@@ -103,7 +103,7 @@ class ResponsePanel(ft.Container):
                                 ),
                             ],
                         ),
-                        padding=ft.padding.only(bottom=5),
+                        padding=ft.Padding(left=0, top=0, right=0, bottom=5),
                     ),
                     self._create_scrollable(self.body_text),
                 ],
@@ -122,7 +122,7 @@ class ResponsePanel(ft.Container):
                 padding=10,
             ),
             expand=True,
-            border=ft.border.all(1, ft.Colors.GREY_300),
+            border=ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.GREY_300), left=ft.border.BorderSide(1, ft.Colors.GREY_300), right=ft.border.BorderSide(1, ft.Colors.GREY_300), bottom=ft.border.BorderSide(1, ft.Colors.GREY_300)),
             border_radius=8,
         )
 

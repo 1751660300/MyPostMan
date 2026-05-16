@@ -100,7 +100,7 @@ class ScheduledTasksPanel(ft.Column):
                 ],
                 spacing=15,
             ),
-            padding=ft.padding.only(left=20, right=20, top=20, bottom=20),
+            padding=ft.Padding(left=20, top=20, right=20, bottom=20),
             expand=True,
         )
         
@@ -212,7 +212,7 @@ class ScheduledTasksPanel(ft.Column):
                                     color=ft.Colors.WHITE,
                                     weight=ft.FontWeight.BOLD,
                                 ),
-                                padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                                padding=ft.Padding(left=10, top=5, right=10, bottom=5),
                                 bgcolor=status_color,
                                 border_radius=12,
                             ),
@@ -252,7 +252,7 @@ class ScheduledTasksPanel(ft.Column):
             padding=15,
             bgcolor=ft.Colors.WHITE,
             border_radius=8,
-            border=ft.border.all(1, ft.Colors.GREY_300),
+            border=ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.GREY_300), left=ft.border.BorderSide(1, ft.Colors.GREY_300), right=ft.border.BorderSide(1, ft.Colors.GREY_300), bottom=ft.border.BorderSide(1, ft.Colors.GREY_300)),
         )
     
     def _on_toggle_schedule(self, plan, enable: bool):

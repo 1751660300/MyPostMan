@@ -98,7 +98,7 @@ class PlanEditorDialog:
             padding=12,
             bgcolor=ft.Colors.BLUE_50,
             border_radius=8,
-            border=ft.border.all(1, ft.Colors.BLUE_200),
+            border=ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.BLUE_200), left=ft.border.BorderSide(1, ft.Colors.BLUE_200), right=ft.border.BorderSide(1, ft.Colors.BLUE_200), bottom=ft.border.BorderSide(1, ft.Colors.BLUE_200)),
         )
         
         # 取消按钮
@@ -116,7 +116,7 @@ class PlanEditorDialog:
             on_click=self._on_save,
             icon=ft.Icons.CHECK,
             style=ft.ButtonStyle(
-                padding=ft.padding.symmetric(horizontal=20, vertical=12),
+                padding=ft.Padding(left=20, top=12, right=20, bottom=12),
             ),
         )
         
@@ -156,7 +156,7 @@ class PlanEditorDialog:
                     spacing=0,
                 ),
                 width=500,
-                padding=ft.padding.all(20),
+                padding=ft.Padding(left=20, top=20, right=20, bottom=20),
             ),
             actions=[
                 cancel_btn,
@@ -187,7 +187,7 @@ class PlanEditorDialog:
                 spacing=10,
             )
             self.mode_description_card.bgcolor = ft.Colors.BLUE_50
-            self.mode_description_card.border = ft.border.all(1, ft.Colors.BLUE_200)
+            self.mode_description_card.border = ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.BLUE_200), left=ft.border.BorderSide(1, ft.Colors.BLUE_200), right=ft.border.BorderSide(1, ft.Colors.BLUE_200), bottom=ft.border.BorderSide(1, ft.Colors.BLUE_200))
         else:
             self.mode_description_card.content = ft.Row(
                 controls=[
@@ -201,7 +201,7 @@ class PlanEditorDialog:
                 spacing=10,
             )
             self.mode_description_card.bgcolor = ft.Colors.GREEN_50
-            self.mode_description_card.border = ft.border.all(1, ft.Colors.GREEN_200)
+            self.mode_description_card.border = ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.GREEN_200), left=ft.border.BorderSide(1, ft.Colors.GREEN_200), right=ft.border.BorderSide(1, ft.Colors.GREEN_200), bottom=ft.border.BorderSide(1, ft.Colors.GREEN_200))
         
         try:
             self.dialog.update()

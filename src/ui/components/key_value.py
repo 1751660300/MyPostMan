@@ -66,7 +66,7 @@ class KeyValueRow(ft.Container):
             alignment=ft.MainAxisAlignment.START,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
-        self.padding = ft.padding.symmetric(vertical=2, horizontal=4)
+        self.padding = ft.Padding(left=4, top=2, right=4, bottom=2)
 
     def _handle_delete(self):
         if self.on_delete_callback:
@@ -123,7 +123,7 @@ class DynamicKeyValueList(ft.Container):
                         ],
                         spacing=8,
                     ),
-                    padding=ft.padding.symmetric(vertical=6, horizontal=4),
+                    padding=ft.Padding(left=4, top=6, right=4, bottom=6),
                     bgcolor=ft.Colors.GREY_200,
                 ),
                 # 数据行
@@ -131,7 +131,7 @@ class DynamicKeyValueList(ft.Container):
                 # 添加按钮
                 ft.Container(
                     content=self.add_row_btn,
-                    padding=ft.padding.only(top=5),
+                    padding=ft.Padding(left=0, top=5, right=0, bottom=0),
                 ),
             ],
             spacing=0,

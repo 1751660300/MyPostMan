@@ -74,7 +74,7 @@ class ExecutionPlanPanel(ft.Column):
                                 icon=ft.Icons.ADD,
                                 on_click=self._on_create_plan,
                                 style=ft.ButtonStyle(
-                                    padding=ft.padding.symmetric(horizontal=20, vertical=12),
+                                    padding=ft.Padding(left=20, top=12, right=20, bottom=12),
                                 ),
                             ),
                         ],
@@ -83,7 +83,7 @@ class ExecutionPlanPanel(ft.Column):
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
-            padding=ft.padding.only(left=20, right=20, top=20, bottom=20),
+            padding=ft.Padding(left=20, top=20, right=20, bottom=20),
         )
         
         # 空状态提示
@@ -102,7 +102,7 @@ class ExecutionPlanPanel(ft.Column):
                         icon=ft.Icons.ADD_CIRCLE,
                         on_click=self._on_create_plan,
                         style=ft.ButtonStyle(
-                            padding=ft.padding.symmetric(horizontal=24, vertical=14),
+                            padding=ft.Padding(left=24, top=14, right=24, bottom=14),
                         ),
                     ),
                 ],
@@ -117,7 +117,7 @@ class ExecutionPlanPanel(ft.Column):
         self.plan_list_container = ft.ListView(
             controls=[],
             spacing=12,
-            padding=ft.padding.symmetric(horizontal=20, vertical=10),
+            padding=ft.Padding(left=20, top=10, right=20, bottom=10),
             expand=True,
         )
         
@@ -194,7 +194,7 @@ class ExecutionPlanPanel(ft.Column):
                 ],
                 spacing=3,
             ),
-            padding=ft.padding.symmetric(horizontal=6, vertical=2),
+            padding=ft.Padding(left=6, top=2, right=6, bottom=2),
             bgcolor=ft.Colors.PURPLE,
             border_radius=10,
             visible=has_schedule,
@@ -228,7 +228,7 @@ class ExecutionPlanPanel(ft.Column):
                     ],
                     spacing=3,
                 ),
-                padding=ft.padding.symmetric(horizontal=6, vertical=2),
+                padding=ft.Padding(left=6, top=2, right=6, bottom=2),
                 bgcolor=status_color,
                 border_radius=10,
             )
@@ -281,7 +281,7 @@ class ExecutionPlanPanel(ft.Column):
                                                 controls=[
                                                     ft.Container(
                                                         content=ft.Text(mode_text, size=11, color=ft.Colors.WHITE, weight=ft.FontWeight.W_500),
-                                                        padding=ft.padding.symmetric(horizontal=6, vertical=2),
+                                                        padding=ft.Padding(left=6, top=2, right=6, bottom=2),
                                                         bgcolor=mode_color,
                                                         border_radius=8,
                                                     ),
@@ -366,10 +366,10 @@ class ExecutionPlanPanel(ft.Column):
                 ],
                 spacing=8,
             ),
-            padding=ft.padding.symmetric(horizontal=16, vertical=12),
+            padding=ft.Padding(left=16, top=12, right=16, bottom=12),
             bgcolor=ft.Colors.WHITE,
             border_radius=12,
-            border=ft.border.all(1, ft.Colors.GREY_200),
+            border=ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.GREY_200), left=ft.border.BorderSide(1, ft.Colors.GREY_200), right=ft.border.BorderSide(1, ft.Colors.GREY_200), bottom=ft.border.BorderSide(1, ft.Colors.GREY_200)),
             shadow=ft.BoxShadow(
                 spread_radius=0,
                 blur_radius=4,

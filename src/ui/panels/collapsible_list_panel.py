@@ -100,7 +100,7 @@ class CollapsibleListPanel(ft.Column):
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
-                padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                padding=ft.Padding(left=8, top=4, right=8, bottom=4),
             ),
             # 内容区域
             self.content_container,

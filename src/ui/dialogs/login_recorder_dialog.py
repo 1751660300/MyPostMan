@@ -1007,13 +1007,13 @@ class LoginRecorderDialog:
                             ),
                             ft.Container(
                                 content=ft.Text(source_text, size=10, color=ft.Colors.WHITE),
-                                padding=ft.padding.symmetric(horizontal=6, vertical=2),
+                                padding=ft.Padding(left=6, top=2, right=6, bottom=2),
                                 bgcolor=icon_color,
                                 border_radius=4,
                             ),
                             ft.Container(
                                 content=ft.Text(extract_type_text, size=10, color=ft.Colors.WHITE),
-                                padding=ft.padding.symmetric(horizontal=6, vertical=2),
+                                padding=ft.Padding(left=6, top=2, right=6, bottom=2),
                                 bgcolor=extract_type_color,
                                 border_radius=4,
                             ),
@@ -1039,7 +1039,7 @@ class LoginRecorderDialog:
                             padding=8,
                             bgcolor=ft.Colors.WHITE,
                             border_radius=4,
-                            margin=ft.margin.only(top=4, bottom=4),
+                            margin=ft.Margin(left=0, top=4, right=0, bottom=4),
                         ),
                         
                         # 第三行：路径/正则表达式
@@ -1067,7 +1067,7 @@ class LoginRecorderDialog:
                     padding=10,
                     bgcolor=bg_color,
                     border_radius=8,
-                    margin=ft.margin.only(bottom=10),
+                    margin=ft.Margin(left=0, top=0, right=0, bottom=10),
                 )
                 
                 items.append(card)
@@ -1147,13 +1147,13 @@ class LoginRecorderDialog:
                                 ),
                                 ft.Container(
                                     content=ft.Text(source_text, size=9, color=ft.Colors.WHITE),
-                                    padding=ft.padding.symmetric(horizontal=4, vertical=1),
+                                    padding=ft.Padding(left=4, top=1, right=4, bottom=1),
                                     bgcolor=icon_color,
                                     border_radius=3,
                                 ),
                                 ft.Container(
                                     content=ft.Text(extract_type_text, size=9, color=ft.Colors.WHITE),
-                                    padding=ft.padding.symmetric(horizontal=4, vertical=1),
+                                    padding=ft.Padding(left=4, top=1, right=4, bottom=1),
                                     bgcolor=ft.Colors.GREEN if extract_type == 'regex' else ft.Colors.BLUE,
                                     border_radius=3,
                                 ),
@@ -1171,8 +1171,8 @@ class LoginRecorderDialog:
                         padding=10,
                         bgcolor=ft.Colors.GREY_50,
                         border_radius=6,
-                        border=ft.border.all(1, ft.Colors.GREY_200),
-                        margin=ft.margin.only(bottom=8),
+                        border=ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.GREY_200), left=ft.border.BorderSide(1, ft.Colors.GREY_200), right=ft.border.BorderSide(1, ft.Colors.GREY_200), bottom=ft.border.BorderSide(1, ft.Colors.GREY_200)),
+                        margin=ft.Margin(left=0, top=0, right=0, bottom=8),
                     )
                     
                     items.append(field_card)
@@ -1256,13 +1256,13 @@ class LoginRecorderDialog:
                                 ),
                                 ft.Container(
                                     content=ft.Text("未捕获", size=9, color=ft.Colors.WHITE),
-                                    padding=ft.padding.symmetric(horizontal=4, vertical=1),
+                                    padding=ft.Padding(left=4, top=1, right=4, bottom=1),
                                     bgcolor=ft.Colors.ORANGE,
                                     border_radius=3,
                                 ),
                                 ft.Container(
                                     content=ft.Text(extract_type_text, size=9, color=ft.Colors.WHITE),
-                                    padding=ft.padding.symmetric(horizontal=4, vertical=1),
+                                    padding=ft.Padding(left=4, top=1, right=4, bottom=1),
                                     bgcolor=ft.Colors.GREEN if extract_type == 'regex' else ft.Colors.BLUE,
                                     border_radius=3,
                                 ),
@@ -1280,8 +1280,8 @@ class LoginRecorderDialog:
                         padding=10,
                         bgcolor=ft.Colors.ORANGE_50,
                         border_radius=6,
-                        border=ft.border.all(1, ft.Colors.ORANGE_200),
-                        margin=ft.margin.only(bottom=8),
+                        border=ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.ORANGE_200), left=ft.border.BorderSide(1, ft.Colors.ORANGE_200), right=ft.border.BorderSide(1, ft.Colors.ORANGE_200), bottom=ft.border.BorderSide(1, ft.Colors.ORANGE_200)),
+                        margin=ft.Margin(left=0, top=0, right=0, bottom=8),
                     )
                     
                     items.append(field_card)

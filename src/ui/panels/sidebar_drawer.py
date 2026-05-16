@@ -118,13 +118,13 @@ class SidebarDrawer(ft.Container):
                         ],
                         alignment=ft.MainAxisAlignment.START,
                     ),
-                    padding=ft.padding.only(left=10, right=10, top=15, bottom=10),
+                    padding=ft.Padding(left=10, top=15, right=10, bottom=10),
                 ),
                 ft.Divider(height=1, color=ft.Colors.GREY_700),
                 # 菜单项
                 ft.Container(
                     content=self.menu_container,
-                    padding=ft.padding.symmetric(horizontal=8, vertical=10),
+                    padding=ft.Padding(left=8, top=10, right=8, bottom=10),
                     expand=True,
                 ),
             ],
@@ -162,7 +162,7 @@ class SidebarDrawer(ft.Container):
                     spacing=12,
                     alignment=ft.MainAxisAlignment.START,
                 )
-                padding = ft.padding.symmetric(vertical=10, horizontal=12)
+                padding = ft.padding.Padding(left=12, top=10, right=12, bottom=10)
             else:
                 # 折叠模式：只显示图标，居中
                 menu_content = ft.Container(
@@ -173,7 +173,7 @@ class SidebarDrawer(ft.Container):
                     ),
                     alignment=ft.Alignment(0, 0),
                 )
-                padding = ft.padding.symmetric(vertical=12, horizontal=0)
+                padding = ft.padding.Padding(left=0, top=12, right=0, bottom=12)
             
             menu_item = ft.Container(
                 content=menu_content,

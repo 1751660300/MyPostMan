@@ -50,7 +50,7 @@ class StepEditorDialog:
                 ],
                 spacing=8,
             ),
-            padding=ft.padding.symmetric(vertical=8, horizontal=8),
+            padding=ft.Padding(left=8, top=8, right=8, bottom=8),
             bgcolor=ft.Colors.GREY_200,
             border_radius=ft.border_radius.only(top_left=6, top_right=6),
         )
@@ -98,7 +98,7 @@ class StepEditorDialog:
                 ],
                 spacing=8,
             ),
-            border=ft.border.all(1, ft.Colors.GREY_300),
+            border=ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.GREY_300), left=ft.border.BorderSide(1, ft.Colors.GREY_300), right=ft.border.BorderSide(1, ft.Colors.GREY_300), bottom=ft.border.BorderSide(1, ft.Colors.GREY_300)),
             border_radius=8,
             padding=0,
         )
@@ -139,7 +139,7 @@ class StepEditorDialog:
             text_size=12,
             dense=False,  # 不使用紧凑模式
             height=48,  # 增加高度以匹配 Dropdown
-            content_padding=ft.padding.symmetric(horizontal=10, vertical=12),
+            content_padding=ft.Padding(left=10, top=12, right=10, bottom=12),
         )
         
         # 构建来源选项（显示具体的步骤名称、全局变量、环境变量）
@@ -183,7 +183,7 @@ class StepEditorDialog:
             text_size=12,
             dense=False,  # 不使用紧凑模式
             height=45,
-            content_padding=ft.padding.symmetric(horizontal=10, vertical=10),
+            content_padding=ft.Padding(left=10, top=10, right=10, bottom=10),
         )
         
         # 变量/字段输入（只填写变量名，不包含前缀）
@@ -207,7 +207,7 @@ class StepEditorDialog:
             text_size=12,
             dense=False,  # 不使用紧凑模式
             height=48,  # 增加高度以匹配 Dropdown
-            content_padding=ft.padding.symmetric(horizontal=10, vertical=12),
+            content_padding=ft.Padding(left=10, top=12, right=10, bottom=12),
         )
         
         # 删除按钮
@@ -232,7 +232,7 @@ class StepEditorDialog:
                 alignment=ft.MainAxisAlignment.START,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,  # 垂直居中对齐
             ),
-            padding=ft.padding.symmetric(vertical=6, horizontal=8),  # 调整内边距，总高度约 60px
+            padding=ft.Padding(left=8, top=6, right=8, bottom=6),  # 调整内边距，总高度约 60px
             bgcolor=ft.Colors.WHITE,
             border_radius=4,
         )
@@ -368,7 +368,7 @@ class StepEditorDialog:
             self.custom_method_container = ft.Container(
                 content=self.custom_method_field,
                 bgcolor=ft.Colors.WHITE,
-                border=ft.border.all(1.5, ft.Colors.PURPLE_300),
+                border=ft.border.Border(top=ft.border.BorderSide(1.5, ft.Colors.PURPLE_300), left=ft.border.BorderSide(1.5, ft.Colors.PURPLE_300), right=ft.border.BorderSide(1.5, ft.Colors.PURPLE_300), bottom=ft.border.BorderSide(1.5, ft.Colors.PURPLE_300)),
                 border_radius=8,
                 padding=0,
             )
@@ -450,7 +450,7 @@ class StepEditorDialog:
             padding=15,
             bgcolor=ft.Colors.GREY_50,
             border_radius=8,
-            border=ft.border.all(1, ft.Colors.GREY_200),
+            border=ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.GREY_200), left=ft.border.BorderSide(1, ft.Colors.GREY_200), right=ft.border.BorderSide(1, ft.Colors.GREY_200), bottom=ft.border.BorderSide(1, ft.Colors.GREY_200)),
         )
         
         # 取消按钮
@@ -468,7 +468,7 @@ class StepEditorDialog:
             on_click=self._on_save,
             icon=ft.Icons.ADD,
             style=ft.ButtonStyle(
-                padding=ft.padding.symmetric(horizontal=20, vertical=12),
+                padding=ft.Padding(left=20, top=12, right=20, bottom=12),
             ),
         )
         
@@ -520,7 +520,7 @@ class StepEditorDialog:
                 ),
                 width=580,
                 height=550,
-                padding=ft.padding.all(20),
+                padding=ft.Padding(left=20, top=20, right=20, bottom=20),
             ),
             actions=[
                 cancel_btn,

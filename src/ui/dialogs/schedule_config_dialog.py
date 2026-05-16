@@ -80,10 +80,10 @@ class ScheduleConfigDialog:
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
-            padding=ft.padding.all(15),
+            padding=ft.Padding(left=15, top=15, right=15, bottom=15),
             bgcolor=ft.Colors.BLUE_50,
             border_radius=10,
-            border=ft.border.all(1, ft.Colors.BLUE_200),
+            border=ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.BLUE_200), left=ft.border.BorderSide(1, ft.Colors.BLUE_200), right=ft.border.BorderSide(1, ft.Colors.BLUE_200), bottom=ft.border.BorderSide(1, ft.Colors.BLUE_200)),
         )
         
         # 调度类型选择
@@ -263,7 +263,7 @@ class ScheduleConfigDialog:
             on_click=self._on_save,
             icon=ft.Icons.CHECK,
             style=ft.ButtonStyle(
-                padding=ft.padding.symmetric(horizontal=20, vertical=12),
+                padding=ft.Padding(left=20, top=12, right=20, bottom=12),
             ),
         )
         
@@ -294,7 +294,7 @@ class ScheduleConfigDialog:
                     spacing=0,
                 ),
                 width=500,
-                padding=ft.padding.all(20),
+                padding=ft.Padding(left=20, top=20, right=20, bottom=20),
             ),
             actions=[
                 cancel_btn,

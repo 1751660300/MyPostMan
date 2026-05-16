@@ -71,7 +71,7 @@ class RequestTab:
             style=ft.ButtonStyle(
                 bgcolor=ft.Colors.BLUE,
                 color=ft.Colors.WHITE,
-                padding=ft.padding.symmetric(vertical=12, horizontal=20),
+                padding=ft.Padding(left=20, top=12, right=20, bottom=12),
                 text_style=ft.TextStyle(size=15, weight=ft.FontWeight.BOLD),
             ),
         )
@@ -641,10 +641,10 @@ class ApiTestPage:
                     spacing=4,
                     alignment=ft.MainAxisAlignment.START
                 ),
-                padding=ft.padding.symmetric(horizontal=12, vertical=6),        
+                padding=ft.Padding(left=12, top=6, right=12, bottom=6),        
                 bgcolor=ft.Colors.BLUE_50 if is_active else ft.Colors.GREY_100, 
                 border_radius=6,
-                border=ft.border.all(2, ft.Colors.BLUE if is_active else ft.Colors.TRANSPARENT),
+                border=ft.border.Border(top=ft.border.BorderSide(2, ft.Colors.BLUE if is_active else ft.Colors.TRANSPARENT), left=ft.border.BorderSide(2, ft.Colors.BLUE if is_active else ft.Colors.TRANSPARENT), right=ft.border.BorderSide(2, ft.Colors.BLUE if is_active else ft.Colors.TRANSPARENT), bottom=ft.border.BorderSide(2, ft.Colors.BLUE if is_active else ft.Colors.TRANSPARENT)),
                 on_click=lambda e, idx=i: self._switch_tab(idx),
             )
 
@@ -1321,7 +1321,7 @@ class ApiTestPage:
             style=ft.ButtonStyle(
                 bgcolor=ft.Colors.BLUE,
                 color=ft.Colors.WHITE,
-                padding=ft.padding.symmetric(vertical=12, horizontal=20),
+                padding=ft.Padding(left=20, top=12, right=20, bottom=12),
                 text_style=ft.TextStyle(size=15, weight=ft.FontWeight.BOLD),
             ),
             on_click=self._on_send_request,
@@ -2154,7 +2154,7 @@ class ApiTestPage:
                     padding=15,
                     bgcolor=ft.Colors.GREEN_50 if is_active else ft.Colors.GREY_50,
                     border_radius=8,
-                    border=ft.border.all(2, ft.Colors.GREEN if is_active else ft.Colors.GREY_300),
+                    border=ft.border.Border(top=ft.border.BorderSide(2, ft.Colors.GREEN if is_active else ft.Colors.GREY_300), left=ft.border.BorderSide(2, ft.Colors.GREEN if is_active else ft.Colors.GREY_300), right=ft.border.BorderSide(2, ft.Colors.GREEN if is_active else ft.Colors.GREY_300), bottom=ft.border.BorderSide(2, ft.Colors.GREEN if is_active else ft.Colors.GREY_300)),
                     on_click=lambda ev, env_id=env.id: self._activate_environment(env_id),
                 )
                 env_list_view.controls.append(card)

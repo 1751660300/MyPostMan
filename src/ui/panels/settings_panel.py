@@ -104,8 +104,8 @@ class SettingsPanel(ft.Container):
             padding=20,
             bgcolor=ft.Colors.WHITE,
             border_radius=12,
-            border=ft.border.all(1, ft.Colors.GREY_300),
-            margin=ft.margin.only(bottom=15),
+            border=ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.GREY_300), left=ft.border.BorderSide(1, ft.Colors.GREY_300), right=ft.border.BorderSide(1, ft.Colors.GREY_300), bottom=ft.border.BorderSide(1, ft.Colors.GREY_300)),
+            margin=ft.Margin(left=0, top=0, right=0, bottom=15),
         )
         
         # 主内容
@@ -122,7 +122,7 @@ class SettingsPanel(ft.Container):
                             spacing=12,
                             alignment=ft.MainAxisAlignment.START,
                         ),
-                        padding=ft.padding.only(left=20, right=20, top=20, bottom=15),
+                        padding=ft.Padding(left=20, top=20, right=20, bottom=15),
                     ),
                     ft.Divider(height=1),
                     # 设置内容
@@ -137,7 +137,7 @@ class SettingsPanel(ft.Container):
                             spacing=0,
                             scroll=ft.ScrollMode.AUTO,
                         ),
-                        padding=ft.padding.symmetric(horizontal=20, vertical=10),
+                        padding=ft.Padding(left=20, top=10, right=20, bottom=10),
                         expand=True,
                     ),
                 ],

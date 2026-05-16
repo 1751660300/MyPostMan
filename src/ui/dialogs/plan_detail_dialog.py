@@ -53,7 +53,7 @@ class PlanDetailDialog:
                             controls=[
                                 ft.Container(
                                     content=ft.Text(mode_text, size=11, color=ft.Colors.WHITE, weight=ft.FontWeight.W_600),
-                                    padding=ft.padding.symmetric(horizontal=8, vertical=3),
+                                    padding=ft.Padding(left=8, top=3, right=8, bottom=3),
                                     bgcolor=mode_color,
                                     border_radius=10,
                                 ),
@@ -85,7 +85,7 @@ class PlanDetailDialog:
             icon=ft.Icons.ADD_CIRCLE,
             on_click=self._on_add_step,
             style=ft.ButtonStyle(
-                padding=ft.padding.symmetric(horizontal=20, vertical=12),
+                padding=ft.Padding(left=20, top=12, right=20, bottom=12),
             ),
         )
         
@@ -114,7 +114,7 @@ class PlanDetailDialog:
                 ),
                 width=650,
                 height=550,
-                padding=ft.padding.all(15),
+                padding=ft.Padding(left=15, top=15, right=15, bottom=15),
             ),
             actions=[
                 close_btn,
@@ -266,10 +266,10 @@ class PlanDetailDialog:
                 spacing=12,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
-            padding=ft.padding.symmetric(horizontal=12, vertical=10),
+            padding=ft.Padding(left=12, top=10, right=12, bottom=10),
             bgcolor=ft.Colors.WHITE,
             border_radius=10,
-            border=ft.border.all(1, ft.Colors.GREY_200),
+            border=ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.GREY_200), left=ft.border.BorderSide(1, ft.Colors.GREY_200), right=ft.border.BorderSide(1, ft.Colors.GREY_200), bottom=ft.border.BorderSide(1, ft.Colors.GREY_200)),
             shadow=ft.BoxShadow(
                 spread_radius=1,
                 blur_radius=3,

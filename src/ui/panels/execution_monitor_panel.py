@@ -59,7 +59,7 @@ class ExecutionMonitorPanel(ft.Column):
                     on_click=self._on_stop,
                     visible=False,  # 初始隐藏
                     style=ft.ButtonStyle(
-                        padding=ft.padding.symmetric(horizontal=16, vertical=10),
+                        padding=ft.Padding(left=16, top=10, right=16, bottom=10),
                     ),
                 ),
             ],
@@ -91,10 +91,10 @@ class ExecutionMonitorPanel(ft.Column):
                 ],
                 spacing=0,
             ),
-            padding=ft.padding.all(16),
+            padding=ft.Padding(left=16, top=16, right=16, bottom=16),
             bgcolor=ft.Colors.WHITE,
             border_radius=12,
-            border=ft.border.all(1, ft.Colors.GREY_200),
+            border=ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.GREY_200), left=ft.border.BorderSide(1, ft.Colors.GREY_200), right=ft.border.BorderSide(1, ft.Colors.GREY_200), bottom=ft.border.BorderSide(1, ft.Colors.GREY_200)),
             shadow=ft.BoxShadow(
                 spread_radius=0,
                 blur_radius=4,
@@ -107,7 +107,7 @@ class ExecutionMonitorPanel(ft.Column):
         self.steps_container = ft.ListView(
             controls=[],
             spacing=10,
-            padding=ft.padding.symmetric(horizontal=20, vertical=10),
+            padding=ft.Padding(left=20, top=10, right=20, bottom=10),
             expand=True,
         )
         
@@ -156,7 +156,7 @@ class ExecutionMonitorPanel(ft.Column):
                     ],
                     spacing=0,
                 ),
-                padding=ft.padding.only(left=20, right=20, top=20),
+                padding=ft.Padding(left=20, top=20, right=20, bottom=0),
             ),
         ]
     
@@ -223,17 +223,17 @@ class ExecutionMonitorPanel(ft.Column):
                                 color=ft.Colors.WHITE,
                                 weight=ft.FontWeight.W_600,
                             ),
-                            padding=ft.padding.symmetric(horizontal=10, vertical=4),
+                            padding=ft.Padding(left=10, top=4, right=10, bottom=4),
                             bgcolor=ft.Colors.GREY_400,
                             border_radius=12,
                         ),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
-                padding=ft.padding.symmetric(horizontal=14, vertical=10),
+                padding=ft.Padding(left=14, top=10, right=14, bottom=10),
                 bgcolor=ft.Colors.GREY_50,
                 border_radius=10,
-                border=ft.border.all(1.5, ft.Colors.GREY_300),
+                border=ft.border.Border(top=ft.border.BorderSide(1.5, ft.Colors.GREY_300), left=ft.border.BorderSide(1.5, ft.Colors.GREY_300), right=ft.border.BorderSide(1.5, ft.Colors.GREY_300), bottom=ft.border.BorderSide(1.5, ft.Colors.GREY_300)),
             )
             self.steps_container.controls.append(step_card)
         
@@ -351,17 +351,17 @@ class ExecutionMonitorPanel(ft.Column):
                                 color=ft.Colors.WHITE,
                                 weight=ft.FontWeight.W_600,
                             ),
-                            padding=ft.padding.symmetric(horizontal=10, vertical=4),
+                            padding=ft.Padding(left=10, top=4, right=10, bottom=4),
                             bgcolor=color,
                             border_radius=12,
                         ),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
-                padding=ft.padding.symmetric(horizontal=14, vertical=10),
+                padding=ft.Padding(left=14, top=10, right=14, bottom=10),
                 bgcolor=bg_color,
                 border_radius=10,
-                border=ft.border.all(1.5, color),
+                border=ft.border.Border(top=ft.border.BorderSide(1.5, color), left=ft.border.BorderSide(1.5, color), right=ft.border.BorderSide(1.5, color), bottom=ft.border.BorderSide(1.5, color)),
                 ink=True,
                 on_click=lambda e, idx=step_index, name=step_name, st=status, err=error: self._on_step_click(idx, name, st, err),
             )
@@ -414,17 +414,17 @@ class ExecutionMonitorPanel(ft.Column):
                                 color=ft.Colors.WHITE,
                                 weight=ft.FontWeight.W_600,
                             ),
-                            padding=ft.padding.symmetric(horizontal=10, vertical=4),
+                            padding=ft.Padding(left=10, top=4, right=10, bottom=4),
                             bgcolor=color,
                             border_radius=12,
                         ),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
-                padding=ft.padding.symmetric(horizontal=14, vertical=10),
+                padding=ft.Padding(left=14, top=10, right=14, bottom=10),
                 bgcolor=bg_color,
                 border_radius=10,
-                border=ft.border.all(1.5, color),
+                border=ft.border.Border(top=ft.border.BorderSide(1.5, color), left=ft.border.BorderSide(1.5, color), right=ft.border.BorderSide(1.5, color), bottom=ft.border.BorderSide(1.5, color)),
                 ink=True,
                 on_click=lambda e, idx=step_index, name=step_name, st=status, err=error: self._on_step_click(idx, name, st, err),
             )
@@ -530,7 +530,7 @@ class ExecutionMonitorPanel(ft.Column):
                         ft.Text("状态码:", size=12, weight=ft.FontWeight.W_600),
                         ft.Container(
                             content=ft.Text(str(result['status_code']), size=12, color=ft.Colors.WHITE),
-                            padding=ft.padding.symmetric(horizontal=8, vertical=3),
+                            padding=ft.Padding(left=8, top=3, right=8, bottom=3),
                             bgcolor=status_color,
                             border_radius=5,
                         ),

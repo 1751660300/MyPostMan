@@ -101,13 +101,13 @@ class BodyEditor(ft.Container):
                         spacing=8,
                         alignment=ft.MainAxisAlignment.START,
                     ),
-                    padding=ft.padding.symmetric(vertical=8, horizontal=4),
+                    padding=ft.Padding(left=4, top=8, right=4, bottom=8),
                 ),
                 # Body 输入区域
                 ft.Container(
                     content=self.body_input,
                     expand=True,
-                    border=ft.border.all(1, ft.Colors.GREY_300),
+                    border=ft.border.Border(top=ft.border.BorderSide(1, ft.Colors.GREY_300), left=ft.border.BorderSide(1, ft.Colors.GREY_300), right=ft.border.BorderSide(1, ft.Colors.GREY_300), bottom=ft.border.BorderSide(1, ft.Colors.GREY_300)),
                     border_radius=8,
                     padding=4,
                 ),
